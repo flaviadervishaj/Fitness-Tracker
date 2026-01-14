@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
+import { workoutAPI } from '../services/api'
 import './WorkoutTracker.css'
 
-function WorkoutTracker({ workouts, setWorkouts, exercises }) {
+function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
   const [workoutName, setWorkoutName] = useState('')
   const [selectedExercises, setSelectedExercises] = useState([])
   const [duration, setDuration] = useState('')
@@ -46,27 +47,43 @@ function WorkoutTracker({ workouts, setWorkouts, exercises }) {
     setSelectedExercises(selectedExercises.filter((_, i) => i !== index))
   }
 
-  const handleSaveWorkout = () => {
+  const handleSaveWorkout = async () => {
     if (!workoutName || selectedExercises.length === 0) {
       alert('Please provide a workout name and add at least one exercise')
       return
     }
 
-    const newWorkout = {
-      id: Date.now(),
-      name: workoutName,
-      date: new Date().toISOString(),
-      exercises: selectedExercises,
-      duration: duration ? parseInt(duration) : null
-    }
+    try {
+      const newWorkout = {
+        name: workoutName,
+        date: new Date().toISOString(),
+        exercises: selectedExercises.map(ex => ({
+          exerciseId: ex.exerciseId,
+          sets: ex.sets,
+          reps: ex.reps,
+          weight: ex.weight || null,
+          notes: ex.notes || ''
+        })),
+        duration: duration ? parseInt(duration) : null
+      }
 
-    setWorkouts([...workouts, newWorkout])
-    
-    // Reset form
-    setWorkoutName('')
-    setSelectedExercises([])
-    setDuration('')
-    alert('Workout saved successfully!')
+      await workoutAPI.create(newWorkout)
+      
+      // Reset form
+      setWorkoutName('')
+      setSelectedExercises([])
+      setDuration('')
+      
+      // Refresh workouts list
+      if (onWorkoutSaved) {
+        onWorkoutSaved()
+      }
+      
+      alert('Workout saved successfully!')
+    } catch (error) {
+      console.error('Failed to save workout:', error)
+      alert('Failed to save workout. Please try again.')
+    }
   }
 
   return (
