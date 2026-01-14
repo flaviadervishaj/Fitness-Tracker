@@ -9,7 +9,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Database configuration
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/fitness_tracker')
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:155155@localhost:5432/fitness_tracker')
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
