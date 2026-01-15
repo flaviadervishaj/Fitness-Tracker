@@ -3,33 +3,35 @@ import './Progress.css'
 
 function Progress({ workouts }) {
   const getWeeklyStats = () => {
-    const weeks = {}
+    const days = {}
     workouts.forEach(workout => {
       const date = new Date(workout.date)
-      const weekStart = new Date(date)
-      weekStart.setDate(date.getDate() - date.getDay())
-      const weekKey = weekStart.toISOString().split('T')[0]
+      // Get just the date part (without time)
+      const dateKey = date.toISOString().split('T')[0]
       
-      if (!weeks[weekKey]) {
-        weeks[weekKey] = {
+      if (!days[dateKey]) {
+        days[dateKey] = {
+          date: dateKey,
           workouts: 0,
           exercises: 0,
           duration: 0
         }
       }
       
-      weeks[weekKey].workouts++
-      weeks[weekKey].exercises += workout.exercises.length
-      weeks[weekKey].duration += workout.duration || 0
+      days[dateKey].workouts++
+      days[dateKey].exercises += workout.exercises.length
+      days[dateKey].duration += workout.duration || 0
     })
     
-    return Object.entries(weeks)
-      .sort((a, b) => new Date(b[0]) - new Date(a[0]))
-      .slice(0, 8)
-      .map(([date, stats]) => ({ date, ...stats }))
+    // Sort by date descending and take last 14 days
+    const sortedDays = Object.values(days)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 14)
+    
+    return sortedDays
   }
 
-  const weeklyStats = getWeeklyStats()
+  const dailyStats = getWeeklyStats() // Returns daily stats (last 14 days)
 
   const getMostUsedExercises = () => {
     const exerciseCount = {}
@@ -93,34 +95,55 @@ function Progress({ workouts }) {
       </div>
 
       <div className="progress-section">
-        <h2>Weekly Activity</h2>
-        {weeklyStats.length > 0 ? (
-          <div className="weekly-chart">
-            {weeklyStats.map((week, index) => (
-              <div key={index} className="week-bar-container">
-                <div className="week-label">
-                  {new Date(week.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </div>
-                <div className="week-bars">
-                  <div className="bar-group">
-                    <div 
-                      className="bar workouts-bar"
-                      style={{ height: `${(week.workouts / Math.max(...weeklyStats.map(w => w.workouts))) * 100}%` }}
-                      title={`${week.workouts} workouts`}
-                    ></div>
-                    <span className="bar-label">Workouts</span>
+        <h2>Daily Activity (Last 14 Days)</h2>
+        {dailyStats.length > 0 ? (
+          <div className="weekly-chart-container">
+            <div className="chart-labels">
+              <span className="chart-label">Workouts</span>
+              <span className="chart-label">Exercises</span>
+            </div>
+            <div className="weekly-chart">
+              {dailyStats.map((day, index) => {
+                const maxWorkouts = Math.max(...dailyStats.map(d => d.workouts), 1)
+                const maxExercises = Math.max(...dailyStats.map(d => d.exercises), 1)
+                const workoutHeight = maxWorkouts > 0 ? (day.workouts / maxWorkouts) * 100 : 0
+                const exerciseHeight = maxExercises > 0 ? (day.exercises / maxExercises) * 100 : 0
+                
+                return (
+                  <div key={index} className="week-bar-container">
+                    <div className="week-bars">
+                      <div className="bar-group">
+                        <div 
+                          className="bar workouts-bar"
+                          style={{ 
+                            height: `${workoutHeight}%`,
+                            minHeight: workoutHeight > 0 ? '15px' : '0'
+                          }}
+                          title={`${day.workouts} workouts`}
+                        >
+                          {day.workouts > 0 && <span className="bar-value">{day.workouts}</span>}
+                        </div>
+                      </div>
+                      <div className="bar-group">
+                        <div 
+                          className="bar exercises-bar"
+                          style={{ 
+                            height: `${exerciseHeight}%`,
+                            minHeight: exerciseHeight > 0 ? '15px' : '0'
+                          }}
+                          title={`${day.exercises} exercises`}
+                        >
+                          {day.exercises > 0 && <span className="bar-value">{day.exercises}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="week-label">
+                      {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
                   </div>
-                  <div className="bar-group">
-                    <div 
-                      className="bar exercises-bar"
-                      style={{ height: `${(week.exercises / Math.max(...weeklyStats.map(w => w.exercises))) * 100}%` }}
-                      title={`${week.exercises} exercises`}
-                    ></div>
-                    <span className="bar-label">Exercises</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+                )
+              })}
+            </div>
           </div>
         ) : (
           <div className="empty-state">

@@ -1,8 +1,14 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { workoutAPI } from '../services/api'
+import { useToast } from '../contexts/ToastContext'
+import { useAuth } from '../contexts/AuthContext'
 import './WorkoutTracker.css'
 
-function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
+function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
+  const toast = useToast()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
   const [workoutName, setWorkoutName] = useState('')
   const [selectedExercises, setSelectedExercises] = useState([])
   const [duration, setDuration] = useState('')
@@ -15,21 +21,42 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
     notes: ''
   })
 
+  const exercisesList = Array.isArray(exercises) ? exercises : []
+
   const handleAddExercise = () => {
     if (!currentExercise.exerciseId || !currentExercise.sets || !currentExercise.reps) {
-      alert('Please fill in exercise, sets, and reps')
+      toast.warning('Please fill in exercise, sets, and reps')
       return
     }
 
-    const exercise = exercises.find(e => e.id === parseInt(currentExercise.exerciseId))
+    const sets = parseInt(currentExercise.sets)
+    const reps = parseInt(currentExercise.reps)
+    const weight = currentExercise.weight ? parseFloat(currentExercise.weight) : null
+
+    if (sets <= 0 || reps <= 0) {
+      toast.warning('Sets and reps must be greater than 0')
+      return
+    }
+
+    if (weight !== null && weight < 0) {
+      toast.warning('Weight cannot be negative')
+      return
+    }
+
+    const exercise = exercisesList.find(e => e.id === parseInt(currentExercise.exerciseId))
+    if (!exercise) {
+      toast.error('Exercise not found')
+      return
+    }
+
     const newExercise = {
       ...currentExercise,
       exerciseId: parseInt(currentExercise.exerciseId),
       exerciseName: exercise.name,
       exerciseImage: exercise.image,
-      sets: parseInt(currentExercise.sets),
-      reps: parseInt(currentExercise.reps),
-      weight: currentExercise.weight ? parseFloat(currentExercise.weight) : null
+      sets: sets,
+      reps: reps,
+      weight: weight
     }
 
     setSelectedExercises([...selectedExercises, newExercise])
@@ -49,13 +76,19 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
 
   const handleSaveWorkout = async () => {
     if (!workoutName || selectedExercises.length === 0) {
-      alert('Please provide a workout name and add at least one exercise')
+      toast.warning('Please provide a workout name and add at least one exercise')
       return
     }
 
     try {
+      const workoutDuration = duration ? parseInt(duration) : null
+      if (workoutDuration !== null && workoutDuration < 0) {
+        toast.warning('Duration cannot be negative')
+        return
+      }
+
       const newWorkout = {
-        name: workoutName,
+        name: workoutName.trim(),
         date: new Date().toISOString(),
         exercises: selectedExercises.map(ex => ({
           exerciseId: ex.exerciseId,
@@ -64,25 +97,27 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
           weight: ex.weight || null,
           notes: ex.notes || ''
         })),
-        duration: duration ? parseInt(duration) : null
+        duration: workoutDuration
       }
 
       await workoutAPI.create(newWorkout)
       
-      // Reset form
       setWorkoutName('')
       setSelectedExercises([])
       setDuration('')
+      setShowExerciseForm(false)
       
-      // Refresh workouts list
-      if (onWorkoutSaved) {
-        onWorkoutSaved()
-      }
+      if (onWorkoutSaved) await onWorkoutSaved()
       
-      alert('Workout saved successfully!')
+      toast.success('Workout saved successfully!')
     } catch (error) {
-      console.error('Failed to save workout:', error)
-      alert('Failed to save workout. Please try again.')
+      if (error.message === 'Authentication required') {
+        logout()
+        navigate('/login')
+        toast.error('Session expired. Please login again.')
+      } else {
+        toast.error(`Failed to save workout: ${error.message || 'Please try again.'}`)
+      }
     }
   }
 
@@ -132,9 +167,13 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
                     onChange={(e) => setCurrentExercise({...currentExercise, exerciseId: e.target.value})}
                   >
                     <option value="">Select exercise</option>
-                    {exercises.map(ex => (
-                      <option key={ex.id} value={ex.id}>{ex.name}</option>
-                    ))}
+                    {exercisesList.length > 0 ? (
+                      exercisesList.map(ex => (
+                        <option key={ex.id} value={ex.id}>{ex.name}</option>
+                      ))
+                    ) : (
+                      <option value="" disabled>No exercises available. Please check the Exercise Library.</option>
+                    )}
                   </select>
                 </div>
 
@@ -190,7 +229,13 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
               {selectedExercises.map((exercise, index) => (
                 <div key={index} className="exercise-item">
                   {exercise.exerciseImage && (
-                    <div className="exercise-item-image">{exercise.exerciseImage}</div>
+                    <div className="exercise-item-image">
+                      {exercise.exerciseImage.startsWith('http') ? (
+                        <img src={exercise.exerciseImage} alt={exercise.exerciseName} />
+                      ) : (
+                        <span>{exercise.exerciseImage}</span>
+                      )}
+                    </div>
                   )}
                   <div className="exercise-info">
                     <h3>{exercise.exerciseName}</h3>
@@ -221,7 +266,3 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises }) {
 }
 
 export default WorkoutTracker
-
-
-
-

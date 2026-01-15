@@ -1,62 +1,57 @@
-// Use relative URL in development (Vite proxy) or absolute URL in production
-const API_BASE_URL = import.meta.env.PROD ? 'http://localhost:5000/api' : '/api';
+const API_BASE_URL = import.meta.env.PROD ? 'http://localhost:5000/api' : '/api'
 
-// Helper function for API calls
+const getAuthToken = () => localStorage.getItem('token')
+
 async function apiCall(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${API_BASE_URL}${endpoint}`
+  const token = getAuthToken()
+  
   const config = {
     headers: {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     },
     ...options,
-  };
+  }
 
   if (config.body && typeof config.body === 'object') {
-    config.body = JSON.stringify(config.body);
+    config.body = JSON.stringify(config.body)
   }
 
   try {
-    const response = await fetch(url, config);
+    const response = await fetch(url, config)
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    if (response.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      throw new Error('Authentication required')
     }
     
-    return await response.json();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || `API error: ${response.status}`)
+    }
+    
+    return await response.json()
   } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
+    throw error
   }
 }
 
-// Exercise API
 export const exerciseAPI = {
   getAll: () => apiCall('/exercises'),
   getById: (id) => apiCall(`/exercises/${id}`),
-  create: (exercise) => apiCall('/exercises', {
-    method: 'POST',
-    body: exercise,
-  }),
-};
+  create: (exercise) => apiCall('/exercises', { method: 'POST', body: exercise }),
+}
 
-// Workout API
 export const workoutAPI = {
   getAll: () => apiCall('/workouts'),
   getById: (id) => apiCall(`/workouts/${id}`),
-  create: (workout) => apiCall('/workouts', {
-    method: 'POST',
-    body: workout,
-  }),
-  update: (id, workout) => apiCall(`/workouts/${id}`, {
-    method: 'PUT',
-    body: workout,
-  }),
-  delete: (id) => apiCall(`/workouts/${id}`, {
-    method: 'DELETE',
-  }),
-};
+  create: (workout) => apiCall('/workouts', { method: 'POST', body: workout }),
+  update: (id, workout) => apiCall(`/workouts/${id}`, { method: 'PUT', body: workout }),
+  delete: (id) => apiCall(`/workouts/${id}`, { method: 'DELETE' }),
+}
 
-// Health check
-export const healthCheck = () => apiCall('/health');
+export const healthCheck = () => apiCall('/health')
 
