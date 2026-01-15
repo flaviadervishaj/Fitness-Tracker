@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.PROD ? 'http://localhost:5000/api' : '/api'
+// Use environment variable for production, or proxy for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 const getAuthToken = () => localStorage.getItem('token')
 

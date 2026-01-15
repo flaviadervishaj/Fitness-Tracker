@@ -64,11 +64,15 @@ def token_required(f):
 # Initialize database
 def init_database():
     """Initialize database tables and seed data"""
-    with app.app_context():
-        db.create_all()
-        # Seed initial exercises if database is empty
-        if Exercise.query.count() == 0:
-            seed_exercises()
+    try:
+        with app.app_context():
+            db.create_all()
+            # Seed initial exercises if database is empty
+            if Exercise.query.count() == 0:
+                seed_exercises()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        # Don't fail if tables already exist
 
 def seed_exercises():
     """Seed the database with initial exercises"""
@@ -429,6 +433,9 @@ def health_check():
     return jsonify({'status': 'healthy', 'message': 'Fitness Tracker API is running'})
 
 if __name__ == '__main__':
-    # Initialize database on startup
-    init_database()
-    app.run(debug=True, host='0.0.0.0', port=5000)  # Allow connections from network
+    # Only initialize database if not in production (handled by gunicorn)
+    if os.environ.get('FLASK_ENV') != 'production':
+        init_database()
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    app.run(debug=debug, host='0.0.0.0', port=port)
