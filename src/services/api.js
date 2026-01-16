@@ -23,6 +23,9 @@ async function apiCall(endpoint, options = {}) {
   try {
     const response = await fetch(url, config)
     
+    // Check content type before parsing
+    const contentType = response.headers.get('content-type') || ''
+    
     if (response.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -30,13 +33,31 @@ async function apiCall(endpoint, options = {}) {
     }
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || `API error: ${response.status}`)
+      // Try to parse as JSON first
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      } else {
+        // If not JSON, read as text to see what we got
+        const text = await response.text()
+        throw new Error(`API returned non-JSON response (${response.status}). Check if VITE_API_URL is configured correctly. URL: ${url}. Response: ${text.substring(0, 100)}`)
+      }
+    }
+    
+    // Check if response is JSON before parsing
+    if (!contentType.includes('application/json')) {
+      const text = await response.text()
+      throw new Error(`API returned non-JSON response. Check if VITE_API_URL is configured correctly. URL: ${url}. Response: ${text.substring(0, 100)}`)
     }
     
     return await response.json()
   } catch (error) {
-    throw error
+    // If it's already our custom error, throw it
+    if (error.message.includes('VITE_API_URL') || error.message.includes('non-JSON')) {
+      throw error
+    }
+    // Otherwise, wrap it with more context
+    throw new Error(`API call failed: ${error.message}. URL: ${url}`)
   }
 }
 
