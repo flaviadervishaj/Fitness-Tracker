@@ -11,7 +11,9 @@ load_dotenv()
 app = Flask(__name__)
 
 # Database configuration
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:155155@localhost:5432/fitness_tracker')
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is required. Please set it in your .env file.")
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
