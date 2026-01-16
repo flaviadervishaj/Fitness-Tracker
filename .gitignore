@@ -91,3 +91,7 @@ secrets/
 # Local development scripts (optional - remove if you want to share)
 # start-dev.bat
 # start-dev.ps1
+
+# Personal deployment documentation (keep locally, don't push to GitHub)
+GITHUB_SETUP.md
+CHECKLIST_DEPLOYMENT.md
