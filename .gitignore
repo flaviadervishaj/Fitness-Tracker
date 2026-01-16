@@ -95,3 +95,15 @@ secrets/
 # Personal deployment documentation (keep locally, don't push to GitHub)
 GITHUB_SETUP.md
 CHECKLIST_DEPLOYMENT.md
+ARKITEKTURA_DEPLOYMENT.md
+SECURITY_FIXES.md
+
+# Local development scripts (keep locally, don't push to GitHub)
+start-dev.bat
+start-dev.ps1
+
+# Local database scripts (keep locally, don't push to GitHub)
+backend/create_db.py
+backend/add_user_id_to_workouts.py
+backend/update_exercise_images.py
+backend/README.md
