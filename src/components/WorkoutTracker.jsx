@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { workoutAPI } from '../services/api'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
 import './WorkoutTracker.css'
 
-function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
+function WorkoutTracker({ onWorkoutSaved, exercises = [] }) {
   const toast = useToast()
   const navigate = useNavigate()
   const { logout } = useAuth()
@@ -13,6 +13,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
   const [selectedExercises, setSelectedExercises] = useState([])
   const [duration, setDuration] = useState('')
   const [showExerciseForm, setShowExerciseForm] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [currentExercise, setCurrentExercise] = useState({
     exerciseId: '',
     sets: '',
@@ -29,9 +30,9 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       return
     }
 
-    const sets = parseInt(currentExercise.sets)
-    const reps = parseInt(currentExercise.reps)
-    const weight = currentExercise.weight ? parseFloat(currentExercise.weight) : null
+    const sets = Number.parseInt(currentExercise.sets, 10)
+    const reps = Number.parseInt(currentExercise.reps, 10)
+    const weight = currentExercise.weight ? Number.parseFloat(currentExercise.weight) : null
 
     if (sets <= 0 || reps <= 0) {
       toast.warning('Sets and reps must be greater than 0')
@@ -43,7 +44,9 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       return
     }
 
-    const exercise = exercisesList.find(e => e.id === parseInt(currentExercise.exerciseId))
+    const exercise = exercisesList.find(
+      (item) => item.id === Number.parseInt(currentExercise.exerciseId, 10),
+    )
     if (!exercise) {
       toast.error('Exercise not found')
       return
@@ -51,7 +54,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
 
     const newExercise = {
       ...currentExercise,
-      exerciseId: parseInt(currentExercise.exerciseId),
+      exerciseId: Number.parseInt(currentExercise.exerciseId, 10),
       exerciseName: exercise.name,
       exerciseImage: exercise.image,
       sets: sets,
@@ -75,15 +78,16 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
   }
 
   const handleSaveWorkout = async () => {
-    if (!workoutName || selectedExercises.length === 0) {
+    if (!workoutName.trim() || selectedExercises.length === 0) {
       toast.warning('Please provide a workout name and add at least one exercise')
       return
     }
 
     try {
-      const workoutDuration = duration ? parseInt(duration) : null
-      if (workoutDuration !== null && workoutDuration < 0) {
-        toast.warning('Duration cannot be negative')
+      setSaving(true)
+      const workoutDuration = duration ? Number.parseInt(duration, 10) : null
+      if (workoutDuration !== null && (workoutDuration < 1 || workoutDuration > 1440)) {
+        toast.warning('Duration must be between 1 and 1440 minutes')
         return
       }
 
@@ -111,13 +115,15 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       
       toast.success('Workout saved successfully!')
     } catch (error) {
-      if (error.message === 'Authentication required') {
+      if (error.code === 'AUTH_REQUIRED') {
         logout()
         navigate('/login')
         toast.error('Session expired. Please login again.')
       } else {
         toast.error(`Failed to save workout: ${error.message || 'Please try again.'}`)
       }
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -143,6 +149,8 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
             placeholder="Optional"
+            min="1"
+            max="1440"
           />
         </div>
 
@@ -184,6 +192,8 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
                     value={currentExercise.sets}
                     onChange={(e) => setCurrentExercise({...currentExercise, sets: e.target.value})}
                     placeholder="3"
+                    min="1"
+                    max="100"
                   />
                 </div>
 
@@ -194,6 +204,8 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
                     value={currentExercise.reps}
                     onChange={(e) => setCurrentExercise({...currentExercise, reps: e.target.value})}
                     placeholder="10"
+                    min="1"
+                    max="1000"
                   />
                 </div>
 
@@ -204,6 +216,9 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
                     value={currentExercise.weight}
                     onChange={(e) => setCurrentExercise({...currentExercise, weight: e.target.value})}
                     placeholder="Optional"
+                    min="0"
+                    max="1000"
+                    step="0.5"
                   />
                 </div>
               </div>
@@ -227,7 +242,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
           {selectedExercises.length > 0 && (
             <div className="exercises-list">
               {selectedExercises.map((exercise, index) => (
-                <div key={index} className="exercise-item">
+                <div key={`${exercise.exerciseId}-${index}`} className="exercise-item">
                   {exercise.exerciseImage && (
                     <div className="exercise-item-image">
                       {exercise.exerciseImage.startsWith('http') ? (
@@ -257,8 +272,8 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
           )}
         </div>
 
-        <button className="btn-save" onClick={handleSaveWorkout}>
-          💾 Save Workout
+        <button className="btn-save" onClick={handleSaveWorkout} disabled={saving}>
+          {saving ? 'Saving...' : '💾 Save Workout'}
         </button>
       </div>
     </div>

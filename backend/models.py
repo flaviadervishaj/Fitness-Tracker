@@ -1,9 +1,13 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone
 import bcrypt
 
 # Create db instance - will be initialized in app.py
 db = SQLAlchemy()
+
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -12,7 +16,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relationship to workouts
     workouts = db.relationship('Workout', back_populates='user', cascade='all, delete-orphan')
@@ -37,7 +41,7 @@ class Exercise(db.Model):
     muscle = db.Column(db.String(200))
     description = db.Column(db.Text)
     image = db.Column(db.String(500))  # Image URL
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relationship to workout exercises
     workout_exercises = db.relationship('WorkoutExercise', back_populates='exercise', cascade='all, delete-orphan')
@@ -50,14 +54,19 @@ class Workout(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    date = db.Column(db.DateTime, nullable=False, default=utc_now)
     duration = db.Column(db.Integer)  # Duration in minutes
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Relationships
     user = db.relationship('User', back_populates='workouts')
-    workout_exercises = db.relationship('WorkoutExercise', back_populates='workout', cascade='all, delete-orphan')
+    workout_exercises = db.relationship(
+        'WorkoutExercise',
+        back_populates='workout',
+        cascade='all, delete-orphan',
+        lazy='selectin'
+    )
     
     def __repr__(self):
         return f'<Workout {self.name} - {self.date}>'
@@ -72,11 +81,11 @@ class WorkoutExercise(db.Model):
     reps = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Float)  # Weight in kg
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relationships
     workout = db.relationship('Workout', back_populates='workout_exercises')
-    exercise = db.relationship('Exercise', back_populates='workout_exercises')
+    exercise = db.relationship('Exercise', back_populates='workout_exercises', lazy='joined')
     
     def __repr__(self):
         return f'<WorkoutExercise {self.workout_id} - {self.exercise_id}>'

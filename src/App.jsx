@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Dashboard from './components/Dashboard'
 import WorkoutTracker from './components/WorkoutTracker'
 import ExerciseLibrary from './components/ExerciseLibrary'
@@ -13,30 +13,30 @@ import './App.css'
 function Navigation() {
   const location = useLocation()
   const { user, logout } = useAuth()
-  
-  const isActive = (path) => location.pathname === path
 
   if (!user) return null
 
+  const links = [
+    { path: '/', label: 'Dashboard' },
+    { path: '/workout', label: 'Workout' },
+    { path: '/exercises', label: 'Exercises' },
+    { path: '/progress', label: 'Progress' },
+  ]
+
   return (
-    <nav className="navbar">
+    <nav className="navbar" aria-label="Main navigation">
       <div className="nav-container">
-        <Link to="/" className="logo">
-          💪 Fitness Tracker
-        </Link>
+        <Link to="/" className="logo">💪 Fitness Tracker</Link>
         <div className="nav-links">
-          <Link to="/" className={isActive('/') ? 'active' : ''}>
-            Dashboard
-          </Link>
-          <Link to="/workout" className={isActive('/workout') ? 'active' : ''}>
-            Workout
-          </Link>
-          <Link to="/exercises" className={isActive('/exercises') ? 'active' : ''}>
-            Exercises
-          </Link>
-          <Link to="/progress" className={isActive('/progress') ? 'active' : ''}>
-            Progress
-          </Link>
+          {links.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className={location.pathname === link.path ? 'active' : ''}
+            >
+              {link.label}
+            </Link>
+          ))}
           <div className="user-menu">
             <span className="username">{user.username}</span>
             <button onClick={logout} className="logout-btn">Logout</button>
@@ -47,165 +47,137 @@ function Navigation() {
   )
 }
 
+function LoadingState({ message = 'Loading...' }) {
+  return (
+    <div className="loading-container" role="status">
+      <div className="loading-spinner" />
+      <p className="loading-text">{message}</p>
+    </div>
+  )
+}
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p className="loading-text">Loading...</p>
-      </div>
-    )
-  }
-
+  if (loading) return <LoadingState />
   return user ? children : <Navigate to="/login" replace />
 }
 
 function AppContent() {
   const [workouts, setWorkouts] = useState([])
   const [exercises, setExercises] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [shouldRedirect, setShouldRedirect] = useState(false)
+  const [loading, setLoading] = useState(false)
   const { user, loading: authLoading, logout } = useAuth()
   const toast = useToast()
-  const fetchedUserIdRef = useRef(null)
 
   useEffect(() => {
+    if (authLoading) return
+
     if (!user) {
       setExercises([])
       setWorkouts([])
       setLoading(false)
-      fetchedUserIdRef.current = null
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (authLoading || !user) {
-      if (!user && !authLoading) setLoading(false)
       return
     }
 
-    if (fetchedUserIdRef.current === user.id) return
+    let isCurrent = true
 
     const fetchData = async () => {
+      setLoading(true)
       try {
-        setLoading(true)
-        fetchedUserIdRef.current = user.id
-        
-        const handleAuthError = (err) => {
-          if (err.message === 'Authentication required') {
-            logout()
-            setShouldRedirect(true)
-            toast.error('Session expired. Please login again.')
-          }
-          return []
-        }
-        
-        const [exercisesData, workoutsData] = await Promise.all([
-          exerciseAPI.getAll().catch(handleAuthError),
-          workoutAPI.getAll().catch(handleAuthError)
+        const [exerciseData, workoutData] = await Promise.all([
+          exerciseAPI.getAll(),
+          workoutAPI.getAll(),
         ])
-        
-        setExercises(Array.isArray(exercisesData) ? exercisesData : [])
-        setWorkouts(Array.isArray(workoutsData) ? workoutsData : [])
-        
-        if ((!exercisesData || exercisesData.length === 0) && (!workoutsData || workoutsData.length === 0)) {
-          toast.error('Failed to load data. Make sure the backend server is running.')
-        } else if (!exercisesData || exercisesData.length === 0) {
-          toast.warning('Failed to load exercises. Please refresh the page.')
-        } else if (!workoutsData || workoutsData.length === 0) {
-          toast.warning('Failed to load workouts. Please refresh the page.')
+
+        if (isCurrent) {
+          setExercises(Array.isArray(exerciseData) ? exerciseData : [])
+          setWorkouts(Array.isArray(workoutData) ? workoutData : [])
         }
-      } catch (err) {
-        toast.error('Failed to load data. Make sure the backend server is running.')
+      } catch (error) {
+        if (!isCurrent) return
+
+        if (error.code === 'AUTH_REQUIRED') {
+          logout()
+          toast.error('Your session expired. Please sign in again.')
+        } else {
+          toast.error('Unable to load your fitness data. Please try again.')
+        }
+
         setExercises([])
         setWorkouts([])
-        fetchedUserIdRef.current = null
       } finally {
-        setLoading(false)
+        if (isCurrent) setLoading(false)
       }
     }
 
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      isCurrent = false
+    }
   }, [user?.id, authLoading])
 
   const refreshWorkouts = async () => {
     try {
-      const workoutsData = await workoutAPI.getAll()
-      setWorkouts(workoutsData)
-    } catch (err) {
-      if (err.message === 'Authentication required') {
+      setWorkouts(await workoutAPI.getAll())
+    } catch (error) {
+      if (error.code === 'AUTH_REQUIRED') {
         logout()
-        setShouldRedirect(true)
-        toast.error('Session expired. Please login again.')
+        toast.error('Your session expired. Please sign in again.')
       } else {
-        toast.error('Failed to refresh workouts')
+        toast.error('Unable to refresh workouts.')
       }
     }
   }
 
-  if (shouldRedirect) return <Navigate to="/login" replace />
   if (authLoading || (user && loading)) {
-    return (
-      <div className="app">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p className="loading-text">Loading your fitness data...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState message="Loading your fitness data..." />
   }
 
   return (
-    <Router>
-      <div className="app">
-        <Navigation />
-        <main className="main-content">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard workouts={workouts} />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/workout" 
-              element={
-                <ProtectedRoute>
-                  <WorkoutTracker 
-                    workouts={workouts} 
-                    onWorkoutSaved={refreshWorkouts}
-                    exercises={exercises} 
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/exercises" 
-              element={
-                <ProtectedRoute>
-                  <ExerciseLibrary exercises={exercises} />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/progress" 
-              element={
-                <ProtectedRoute>
-                  <Progress workouts={workouts} />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <div className="app">
+      <Navigation />
+      <main className="main-content">
+        <Routes>
+          <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+          <Route
+            path="/"
+            element={(
+              <ProtectedRoute>
+                <Dashboard workouts={workouts} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/workout"
+            element={(
+              <ProtectedRoute>
+                <WorkoutTracker
+                  onWorkoutSaved={refreshWorkouts}
+                  exercises={exercises}
+                />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/exercises"
+            element={(
+              <ProtectedRoute>
+                <ExerciseLibrary exercises={exercises} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/progress"
+            element={(
+              <ProtectedRoute>
+                <Progress workouts={workouts} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+        </Routes>
+      </main>
+    </div>
   )
 }
 
@@ -213,7 +185,9 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
       </AuthProvider>
     </ToastProvider>
   )
