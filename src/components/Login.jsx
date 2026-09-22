@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './Login.css'
 
@@ -8,22 +8,21 @@ function Login() {
   const [password, setPassword] = useState('')
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    if (isRegister) {
-      const result = await register(username, email.trim() || undefined, password)
-      if (result.success) {
-        navigate('/')
-      }
-    } else {
-      const result = await login(username, password)
-      if (result.success) {
-        navigate('/')
-      }
+    setSubmitting(true)
+
+    const result = isRegister
+      ? await register(username.trim(), email.trim(), password)
+      : await login(username.trim(), password)
+
+    setSubmitting(false)
+    if (result.success) {
+      navigate('/')
     }
   }
 
@@ -38,8 +37,9 @@ function Login() {
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label>Username</label>
+            <label htmlFor="auth-username">Username</label>
             <input
+              id="auth-username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -50,30 +50,33 @@ function Login() {
 
           {isRegister && (
             <div className="form-group">
-              <label>Email (Optional)</label>
+              <label htmlFor="register-email">Email</label>
               <input
+                id="register-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email (optional)"
+                placeholder="Enter your email"
+                required
               />
             </div>
           )}
 
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="auth-password">Password</label>
             <input
+              id="auth-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
-              minLength={6}
+              minLength={8}
             />
           </div>
 
-          <button type="submit" className="login-btn">
-            {isRegister ? 'Sign Up' : 'Sign In'}
+          <button type="submit" className="login-btn" disabled={submitting}>
+            {submitting ? 'Please wait...' : isRegister ? 'Sign Up' : 'Sign In'}
           </button>
         </form>
 
@@ -83,7 +86,7 @@ function Login() {
             <button 
               type="button"
               className="switch-btn"
-              onClick={() => setIsRegister(!isRegister)}
+              onClick={() => setIsRegister((current) => !current)}
             >
               {isRegister ? 'Sign In' : 'Sign Up'}
             </button>
@@ -95,4 +98,3 @@ function Login() {
 }
 
 export default Login
-

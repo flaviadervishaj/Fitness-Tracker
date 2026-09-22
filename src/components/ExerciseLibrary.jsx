@@ -1,16 +1,19 @@
-import React, { useState } from 'react'
+import { useMemo, useState } from 'react'
 import './ExerciseLibrary.css'
 
 function ExerciseLibrary({ exercises }) {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
 
-  const categories = ['All', ...new Set(exercises.map(ex => ex.category))]
+  const categories = useMemo(
+    () => ['All', ...new Set(exercises.map((exercise) => exercise.category))],
+    [exercises],
+  )
 
   const filteredExercises = exercises.filter(exercise => {
     const matchesCategory = selectedCategory === 'All' || exercise.category === selectedCategory
     const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         exercise.muscle.toLowerCase().includes(searchTerm.toLowerCase())
+                         (exercise.muscle || '').toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCategory && matchesSearch
   })
 
@@ -85,4 +88,3 @@ function ExerciseLibrary({ exercises }) {
 }
 
 export default ExerciseLibrary
-
