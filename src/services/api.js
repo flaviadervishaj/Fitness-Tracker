@@ -1,64 +1,64 @@
+// Use environment variable for production, or proxy for development
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 const getAuthToken = () => localStorage.getItem('token')
 
-const createApiError = (message, code, status) => {
-  const error = new Error(message)
-  error.code = code
-  error.status = status
-  return error
-}
-
 async function apiCall(endpoint, options = {}) {
+  const url = `${API_BASE_URL}${endpoint}`
   const token = getAuthToken()
+  
   const config = {
-    ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     },
+    ...options,
   }
 
   if (config.body && typeof config.body === 'object') {
     config.body = JSON.stringify(config.body)
   }
 
-  let response
   try {
-    response = await fetch(`${API_BASE_URL}${endpoint}`, config)
-  } catch {
-    throw createApiError('Unable to connect to the server', 'NETWORK_ERROR')
+    const response = await fetch(url, config)
+    
+    // Check content type before parsing
+    const contentType = response.headers.get('content-type') || ''
+    
+    if (response.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      throw new Error('Authentication required')
+    }
+    
+    if (!response.ok) {
+      // Try to parse as JSON first
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      } else {
+        // If not JSON, read as text to see what we got
+        const text = await response.text()
+        throw new Error(`API returned non-JSON response (${response.status}). Check if VITE_API_URL is configured correctly. URL: ${url}. Response: ${text.substring(0, 100)}`)
+      }
+    }
+    
+    // Check if response is JSON before parsing
+    if (!contentType.includes('application/json')) {
+      const text = await response.text()
+      throw new Error(`API returned non-JSON response. Check if VITE_API_URL is configured correctly. URL: ${url}. Response: ${text.substring(0, 100)}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    // If it's already our custom error, throw it
+    if (error.message.includes('VITE_API_URL') || error.message.includes('non-JSON')) {
+      throw error
+    }
+    // Otherwise, wrap it with more context
+    throw new Error(`API call failed: ${error.message}. URL: ${url}`)
   }
-
-  const contentType = response.headers.get('content-type') || ''
-  const data = contentType.includes('application/json')
-    ? await response.json().catch(() => ({}))
-    : null
-
-  if (response.status === 401) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    throw createApiError(
-      data?.error || 'Authentication required',
-      'AUTH_REQUIRED',
-      response.status,
-    )
-  }
-
-  if (!response.ok) {
-    throw createApiError(
-      data?.error || `Request failed with status ${response.status}`,
-      'API_ERROR',
-      response.status,
-    )
-  }
-
-  if (!data) {
-    throw createApiError('The server returned an invalid response', 'INVALID_RESPONSE')
-  }
-
-  return data
 }
 
 export const exerciseAPI = {

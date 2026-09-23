@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-.venv/
 backend/venv/
 backend/env/
 backend/.venv/

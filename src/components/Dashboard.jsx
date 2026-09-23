@@ -21,7 +21,7 @@ function Dashboard({ workouts }) {
     { label: 'Total Minutes', value: totalDuration, icon: '⏱️', color: '#00ced1' },
   ]
 
-  const recentWorkouts = workouts.slice(0, 3)
+  const recentWorkouts = workouts.slice(-3).reverse()
 
   return (
     <div className="dashboard">
@@ -29,8 +29,8 @@ function Dashboard({ workouts }) {
       <p className="dashboard-subtitle">Track your progress and achieve your goals</p>
 
       <div className="stats-grid">
-        {stats.map((stat) => (
-          <div key={stat.label} className="stat-card" style={{ borderTopColor: stat.color }}>
+        {stats.map((stat, index) => (
+          <div key={index} className="stat-card" style={{ borderTopColor: stat.color }}>
             <div className="stat-icon">{stat.icon}</div>
             <div className="stat-content">
               <div className="stat-value">{stat.value}</div>
@@ -45,8 +45,8 @@ function Dashboard({ workouts }) {
           <h2>Recent Workouts</h2>
           {recentWorkouts.length > 0 ? (
             <div className="workout-list">
-              {recentWorkouts.map((workout) => (
-                <div key={workout.id} className="workout-card">
+              {recentWorkouts.map((workout, index) => (
+                <div key={index} className="workout-card">
                   <div className="workout-header">
                     <h3>{workout.name}</h3>
                     <span className="workout-date">{new Date(workout.date).toLocaleDateString()}</span>
@@ -85,6 +85,7 @@ function Dashboard({ workouts }) {
 }
 
 export default Dashboard
+
 
 
 

@@ -43,40 +43,6 @@ CREATE TABLE IF NOT EXISTS workout_exercises (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- The browser never connects directly to these tables. The Flask API owns all
--- authentication and data access, so block anon/authenticated Data API roles.
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
-ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE workout_exercises ENABLE ROW LEVEL SECURITY;
-
-REVOKE ALL ON TABLE users FROM anon, authenticated;
-REVOKE ALL ON TABLE exercises FROM anon, authenticated;
-REVOKE ALL ON TABLE workouts FROM anon, authenticated;
-REVOKE ALL ON TABLE workout_exercises FROM anon, authenticated;
-REVOKE ALL ON SEQUENCE users_id_seq FROM anon, authenticated;
-REVOKE ALL ON SEQUENCE exercises_id_seq FROM anon, authenticated;
-REVOKE ALL ON SEQUENCE workouts_id_seq FROM anon, authenticated;
-REVOKE ALL ON SEQUENCE workout_exercises_id_seq FROM anon, authenticated;
-
-ALTER TABLE workouts DROP CONSTRAINT IF EXISTS workouts_duration_check;
-ALTER TABLE workouts
-    ADD CONSTRAINT workouts_duration_check
-    CHECK (duration IS NULL OR duration BETWEEN 1 AND 1440);
-
-ALTER TABLE workout_exercises DROP CONSTRAINT IF EXISTS workout_exercises_sets_check;
-ALTER TABLE workout_exercises
-    ADD CONSTRAINT workout_exercises_sets_check CHECK (sets BETWEEN 1 AND 100);
-
-ALTER TABLE workout_exercises DROP CONSTRAINT IF EXISTS workout_exercises_reps_check;
-ALTER TABLE workout_exercises
-    ADD CONSTRAINT workout_exercises_reps_check CHECK (reps BETWEEN 1 AND 1000);
-
-ALTER TABLE workout_exercises DROP CONSTRAINT IF EXISTS workout_exercises_weight_check;
-ALTER TABLE workout_exercises
-    ADD CONSTRAINT workout_exercises_weight_check
-    CHECK (weight IS NULL OR weight BETWEEN 0 AND 1000);
-
 -- Krijo index për performance
 CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
 CREATE INDEX IF NOT EXISTS idx_workout_exercises_workout_id ON workout_exercises(workout_id);
@@ -98,3 +64,4 @@ WHERE NOT EXISTS (SELECT 1 FROM exercises LIMIT 1);
 
 -- Verifikim
 SELECT COUNT(*) as total_exercises FROM exercises;
+

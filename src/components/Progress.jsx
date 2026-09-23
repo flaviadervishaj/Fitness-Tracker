@@ -1,3 +1,4 @@
+import React from 'react'
 import './Progress.css'
 
 function Progress({ workouts }) {
@@ -102,14 +103,14 @@ function Progress({ workouts }) {
               <span className="chart-label">Exercises</span>
             </div>
             <div className="weekly-chart">
-              {dailyStats.map((day) => {
+              {dailyStats.map((day, index) => {
                 const maxWorkouts = Math.max(...dailyStats.map(d => d.workouts), 1)
                 const maxExercises = Math.max(...dailyStats.map(d => d.exercises), 1)
                 const workoutHeight = maxWorkouts > 0 ? (day.workouts / maxWorkouts) * 100 : 0
                 const exerciseHeight = maxExercises > 0 ? (day.exercises / maxExercises) * 100 : 0
                 
                 return (
-                  <div key={day.date} className="week-bar-container">
+                  <div key={index} className="week-bar-container">
                     <div className="week-bars">
                       <div className="bar-group">
                         <div 
@@ -137,7 +138,7 @@ function Progress({ workouts }) {
                       </div>
                     </div>
                     <div className="week-label">
-                      {new Date(`${day.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </div>
                   </div>
                 )
@@ -156,7 +157,7 @@ function Progress({ workouts }) {
           <h2>Most Used Exercises</h2>
           <div className="exercise-stats">
             {mostUsedExercises.map((exercise, index) => (
-              <div key={exercise.name} className="exercise-stat-item">
+              <div key={index} className="exercise-stat-item">
                 <div className="exercise-rank">#{index + 1}</div>
                 <div className="exercise-name">{exercise.name}</div>
                 <div className="exercise-count">{exercise.count} times</div>
@@ -178,5 +179,7 @@ function Progress({ workouts }) {
 }
 
 export default Progress
+
+
 
 

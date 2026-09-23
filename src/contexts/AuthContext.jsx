@@ -1,13 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useToast } from './ToastContext'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
-const AuthContext = createContext()
 
-const clearStoredSession = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-}
+const AuthContext = createContext()
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -15,79 +11,91 @@ export function AuthProvider({ children }) {
   const toast = useToast()
 
   useEffect(() => {
-    let isCurrent = true
-
-    const restoreSession = async () => {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        setLoading(false)
-        return
-      }
-
+    const token = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+    
+    if (token && savedUser) {
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!response.ok) throw new Error('Invalid session')
-
-        const currentUser = await response.json()
-        if (isCurrent) {
-          localStorage.setItem('user', JSON.stringify(currentUser))
-          setUser(currentUser)
-        }
-      } catch {
-        clearStoredSession()
-      } finally {
-        if (isCurrent) setLoading(false)
+        setUser(JSON.parse(savedUser))
+      } catch (e) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
       }
     }
-
-    restoreSession()
-    return () => {
-      isCurrent = false
-    }
+    setLoading(false)
   }, [])
 
-  const submitAuthRequest = async (endpoint, payload, successMessage) => {
+  const login = async (username, password) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
       })
-      const data = await response.json().catch(() => ({}))
+
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed')
+        throw new Error(data.error || 'Login failed')
       }
 
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
       setUser(data.user)
-      toast.success(successMessage)
+      toast.success('Login successful!')
       return { success: true }
     } catch (error) {
-      toast.error(error.message || 'Authentication failed')
+      toast.error(error.message || 'Login failed')
       return { success: false, error: error.message }
     }
   }
 
-  const login = (username, password) => (
-    submitAuthRequest('login', { username, password }, 'Welcome back!')
-  )
+  const register = async (username, email, password) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username, 
+          password,
+          ...(email && { email })
+        }),
+      })
 
-  const register = (username, email, password) => (
-    submitAuthRequest('register', { username, email, password }, 'Account created successfully!')
-  )
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed')
+      }
+
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      setUser(data.user)
+      toast.success('Registration successful!')
+      return { success: true }
+    } catch (error) {
+      toast.error(error.message || 'Registration failed')
+      return { success: false, error: error.message }
+    }
+  }
 
   const logout = () => {
-    clearStoredSession()
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     setUser(null)
     toast.info('Logged out successfully')
   }
 
+  const getToken = () => {
+    return localStorage.getItem('token')
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, getToken, loading }}>
       {children}
     </AuthContext.Provider>
   )
