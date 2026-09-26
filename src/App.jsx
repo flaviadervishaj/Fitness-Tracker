@@ -84,8 +84,37 @@ function ProtectedRoute({ children }) {
 
 function ScrollToTop() {
   const { pathname } = useLocation()
-  useEffect(() => window.scrollTo(0, 0), [pathname])
+  useEffect(() => {
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [pathname])
   return null
+}
+
+class PageErrorBoundary extends React.Component {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error, details) {
+    console.error('Page rendering failed', error, details)
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="page-error" role="alert">
+          <h1>This page could not load</h1>
+          <p>Please reload to continue.</p>
+          <button type="button" onClick={() => window.location.reload()}>Reload page</button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
 }
 
 function AppContent() {
@@ -234,7 +263,9 @@ function App() {
       <AuthProvider>
         <Router>
           <ScrollToTop />
-          <AppContent />
+          <PageErrorBoundary>
+            <AppContent />
+          </PageErrorBoundary>
         </Router>
       </AuthProvider>
     </ToastProvider>
