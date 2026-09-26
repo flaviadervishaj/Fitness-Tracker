@@ -119,10 +119,6 @@
   object-position: center;
 }
 
-.exercise-card-image span {
-  /* Fallback për emoji nëse nuk ka foto */
-}
-
 .exercise-card:hover .exercise-card-image {
   transform: scale(1.05);
 }
@@ -196,7 +192,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 
 
 

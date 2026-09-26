@@ -370,6 +370,8 @@ The frontend is configured to proxy API requests to the backend during developme
 
 This project is open source and available for personal use.
 
+Exercise photographs are from [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), distributed under its [Unlicense](https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md). The eight included images are stored in `public/exercises` so the exercise library works without a third-party image service.
+
 ## Contributing
 
 Feel free to fork this project and make it your own! Add features, improve the UI, or customize it to fit your needs.

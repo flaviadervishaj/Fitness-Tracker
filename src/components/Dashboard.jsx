@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import './Dashboard.css'
 
-function Dashboard({ workouts, isGuest }) {
+function Dashboard({ workouts, isGuest, loading }) {
   const totalWorkouts = workouts.length
   const thisWeekWorkouts = workouts.filter(workout => {
     const workoutDate = new Date(workout.date)
@@ -15,17 +15,17 @@ function Dashboard({ workouts, isGuest }) {
   const totalDuration = workouts.reduce((sum, workout) => sum + (workout.duration || 0), 0)
 
   const stats = [
-    { label: 'Total Workouts', value: totalWorkouts, icon: '📊', color: '#00bfff' },
-    { label: 'This Week', value: thisWeekWorkouts, icon: '📅', color: '#0096ff' },
-    { label: 'Exercises Done', value: totalExercises, icon: '💪', color: '#40e0d0' },
-    { label: 'Total Minutes', value: totalDuration, icon: '⏱️', color: '#00ced1' },
+    { label: 'Total Workouts', value: totalWorkouts, icon: '01', color: '#00bfff' },
+    { label: 'This Week', value: thisWeekWorkouts, icon: '02', color: '#0096ff' },
+    { label: 'Exercises Done', value: totalExercises, icon: '03', color: '#40e0d0' },
+    { label: 'Total Minutes', value: totalDuration, icon: '04', color: '#00ced1' },
   ]
 
   const recentWorkouts = workouts.slice(0, 3)
 
   return (
     <div className="dashboard">
-      <h1 className="dashboard-title">Welcome to Your Fitness Journey! 🏋️</h1>
+      <h1 className="dashboard-title">Your workout overview</h1>
       <p className="dashboard-subtitle">
         {isGuest ? 'Explore exercises, then sign in to track your workouts and progress.' : 'Track your progress and achieve your goals'}
       </p>
@@ -45,7 +45,9 @@ function Dashboard({ workouts, isGuest }) {
       <div className="dashboard-row">
         <div className="dashboard-section recent-workouts-section">
           <h2>{isGuest ? 'Your workout space' : 'Recent Workouts'}</h2>
-          {recentWorkouts.length > 0 ? (
+          {loading ? (
+            <div className="empty-state"><p>Loading workouts...</p></div>
+          ) : recentWorkouts.length > 0 ? (
             <div className="workout-list">
               {recentWorkouts.map((workout, index) => (
                 <div key={index} className="workout-card">
@@ -71,13 +73,13 @@ function Dashboard({ workouts, isGuest }) {
           <h2>Quick Actions</h2>
           <div className="action-buttons">
             <Link to={isGuest ? '/login' : '/workout'} className="action-btn primary">
-              {isGuest ? 'Sign in to start tracking' : '➕ Start New Workout'}
+              {isGuest ? 'Sign in to start tracking' : 'Start New Workout'}
             </Link>
             <Link to="/exercises" className="action-btn secondary">
-              📚 Browse Exercises
+              Browse Exercises
             </Link>
             {!isGuest && <Link to="/progress" className="action-btn secondary">
-              📈 View Progress
+              View Progress
             </Link>}
           </div>
         </div>
@@ -87,5 +89,3 @@ function Dashboard({ workouts, isGuest }) {
 }
 
 export default Dashboard
-
-

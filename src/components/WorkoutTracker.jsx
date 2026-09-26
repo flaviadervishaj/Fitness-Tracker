@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { workoutAPI } from '../services/api'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
+import { getExerciseImage } from '../services/exerciseImages'
 import './WorkoutTracker.css'
 
 function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
@@ -29,17 +30,17 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       return
     }
 
-    const sets = parseInt(currentExercise.sets)
-    const reps = parseInt(currentExercise.reps)
-    const weight = currentExercise.weight ? parseFloat(currentExercise.weight) : null
+    const sets = Number(currentExercise.sets)
+    const reps = Number(currentExercise.reps)
+    const weight = currentExercise.weight !== '' ? Number(currentExercise.weight) : null
 
-    if (sets <= 0 || reps <= 0) {
-      toast.warning('Sets and reps must be greater than 0')
+    if (!Number.isInteger(sets) || !Number.isInteger(reps) || sets <= 0 || reps <= 0) {
+      toast.warning('Sets and reps must be positive whole numbers')
       return
     }
 
-    if (weight !== null && weight < 0) {
-      toast.warning('Weight cannot be negative')
+    if (weight !== null && (!Number.isFinite(weight) || weight < 0)) {
+      toast.warning('Enter a valid weight')
       return
     }
 
@@ -53,7 +54,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       ...currentExercise,
       exerciseId: parseInt(currentExercise.exerciseId),
       exerciseName: exercise.name,
-      exerciseImage: exercise.image,
+      exerciseImage: getExerciseImage(exercise),
       sets: sets,
       reps: reps,
       weight: weight
@@ -75,15 +76,15 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
   }
 
   const handleSaveWorkout = async () => {
-    if (!workoutName || selectedExercises.length === 0) {
+    if (!workoutName.trim() || selectedExercises.length === 0) {
       toast.warning('Please provide a workout name and add at least one exercise')
       return
     }
 
     try {
-      const workoutDuration = duration ? parseInt(duration) : null
-      if (workoutDuration !== null && workoutDuration < 0) {
-        toast.warning('Duration cannot be negative')
+      const workoutDuration = duration !== '' ? Number(duration) : null
+      if (workoutDuration !== null && (!Number.isInteger(workoutDuration) || workoutDuration < 0)) {
+        toast.warning('Enter a valid duration')
         return
       }
 
@@ -123,7 +124,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
 
   return (
     <div className="workout-tracker">
-      <h1>Track Your Workout 💪</h1>
+      <h1>Track Your Workout</h1>
 
       <div className="workout-form">
         <div className="form-group">
@@ -149,7 +150,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
         <div className="exercises-section">
           <div className="section-header">
             <h2>Exercises</h2>
-            <button 
+            <button type="button"
               className="btn-add"
               onClick={() => setShowExerciseForm(!showExerciseForm)}
             >
@@ -218,7 +219,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
                 />
               </div>
 
-              <button className="btn-primary" onClick={handleAddExercise}>
+              <button type="button" className="btn-primary" onClick={handleAddExercise}>
                 Add to Workout
               </button>
             </div>
@@ -230,7 +231,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
                 <div key={index} className="exercise-item">
                   {exercise.exerciseImage && (
                     <div className="exercise-item-image">
-                      {exercise.exerciseImage.startsWith('http') ? (
+                      {exercise.exerciseImage.startsWith('http') || exercise.exerciseImage.startsWith('/') ? (
                         <img src={exercise.exerciseImage} alt={exercise.exerciseName} />
                       ) : (
                         <span>{exercise.exerciseImage}</span>
@@ -241,13 +242,14 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
                     <h3>{exercise.exerciseName}</h3>
                     <div className="exercise-details">
                       <span>{exercise.sets} sets × {exercise.reps} reps</span>
-                      {exercise.weight && <span>{exercise.weight} kg</span>}
+                      {exercise.weight != null && <span>{exercise.weight} kg</span>}
                     </div>
                     {exercise.notes && <p className="exercise-notes">{exercise.notes}</p>}
                   </div>
-                  <button 
+                  <button type="button"
                     className="btn-remove"
                     onClick={() => handleRemoveExercise(index)}
+                    aria-label={`Remove ${exercise.exerciseName}`}
                   >
                     ✕
                   </button>
@@ -257,8 +259,8 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
           )}
         </div>
 
-        <button className="btn-save" onClick={handleSaveWorkout}>
-          💾 Save Workout
+        <button type="button" className="btn-save" onClick={handleSaveWorkout}>
+          Save Workout
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { getExerciseImage } from '../services/exerciseImages'
 import './ExerciseLibrary.css'
 
 function ExerciseLibrary({ exercises, loading, error, onRetry }) {
@@ -16,7 +17,7 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
 
   return (
     <div className="exercise-library">
-      <h1>Exercise Library 📚</h1>
+      <h1>Exercise Library</h1>
       <p className="library-subtitle">Browse and learn about different exercises</p>
 
       <div className="library-controls">
@@ -43,22 +44,18 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
       </div>
 
       <div className="exercises-grid">
-        {filteredExercises.map(exercise => (
-          <div key={exercise.id} className="exercise-card">
-            {exercise.image && (
+        {filteredExercises.map(exercise => {
+          const image = getExerciseImage(exercise)
+          return <div key={exercise.id} className="exercise-card">
+            {image && (
               <div className="exercise-card-image">
-                {exercise.image.startsWith('http') ? (
-                  <img 
-                    src={exercise.image} 
+                  <img
+                    src={image}
                     alt={exercise.name}
                     onError={(e) => {
-                      e.target.onerror = null
-                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="150"%3E%3Crect width="200" height="150" fill="%23e0e0e0"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" font-size="48"%3E💪%3C/text%3E%3C/svg%3E'
+                      e.currentTarget.style.display = 'none'
                     }}
                   />
-                ) : (
-                  <span>{exercise.image}</span>
-                )}
               </div>
             )}
             <div className="exercise-card-header">
@@ -72,7 +69,7 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
               <p className="exercise-description">{exercise.description}</p>
             </div>
           </div>
-        ))}
+        })}
       </div>
 
       {filteredExercises.length === 0 && (

@@ -43,7 +43,7 @@
 }
 
 .logo::before {
-  content: '💪 Fitness Tracker';
+  content: 'Fitness Tracker';
   position: absolute;
   top: 0;
   left: 0;

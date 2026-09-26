@@ -20,7 +20,7 @@ function Navigation() {
     <nav className="navbar">
       <div className="nav-container">
         <Link to="/" className="logo">
-          💪 Fitness Tracker
+          Fitness Tracker
         </Link>
         <div className="nav-links">
           <Link to="/" className={isActive('/') ? 'active' : ''}>
@@ -140,7 +140,7 @@ function AppContent() {
     }
   }
 
-  if (authLoading || (user && loading)) {
+  if (authLoading) {
     return (
       <div className="app">
         <div className="loading-container">
@@ -160,7 +160,7 @@ function AppContent() {
             <Route 
               path="/" 
               element={
-                <Dashboard workouts={workouts} isGuest={!user} />
+                <Dashboard workouts={workouts} isGuest={!user} loading={loading} />
               } 
             />
             <Route 

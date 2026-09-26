@@ -30,7 +30,7 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>💪 Fitness Tracker</h1>
+        <h1>Fitness Tracker</h1>
         <h2>{isRegister ? 'Create Account' : 'Welcome Back'}</h2>
         <p className="login-subtitle">
           {isRegister ? 'Sign up to start tracking your fitness journey' : 'Sign in to continue'}
