@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import './Dashboard.css'
 
-function Dashboard({ workouts, isGuest, loading }) {
+function Dashboard({ workouts, loading }) {
   const totalWorkouts = workouts.length
   const thisWeekWorkouts = workouts.filter(workout => {
     const workoutDate = new Date(workout.date)
@@ -26,11 +26,9 @@ function Dashboard({ workouts, isGuest, loading }) {
   return (
     <div className="dashboard">
       <h1 className="dashboard-title">Your workout overview</h1>
-      <p className="dashboard-subtitle">
-        {isGuest ? 'Explore exercises, then sign in to track your workouts and progress.' : 'Track your progress and achieve your goals'}
-      </p>
+      <p className="dashboard-subtitle">Your activity at a glance</p>
 
-      {!isGuest && <div className="stats-grid">
+      <div className="stats-grid">
         {stats.map((stat, index) => (
           <div key={index} className="stat-card" style={{ borderTopColor: stat.color }}>
             <div className="stat-content">
@@ -39,11 +37,11 @@ function Dashboard({ workouts, isGuest, loading }) {
             </div>
           </div>
         ))}
-      </div>}
+      </div>
 
       <div className="dashboard-row">
         <div className="dashboard-section recent-workouts-section">
-          <h2>{isGuest ? 'Your workout space' : 'Recent Workouts'}</h2>
+          <h2>Recent Workouts</h2>
           {loading ? (
             <div className="empty-state"><p>Loading workouts...</p></div>
           ) : recentWorkouts.length > 0 ? (
@@ -63,7 +61,7 @@ function Dashboard({ workouts, isGuest, loading }) {
             </div>
           ) : (
             <div className="empty-state">
-              <p>{isGuest ? 'Sign in to save workouts and see your activity here.' : 'No workouts yet. Start your first workout to see it here!'}</p>
+              <p>No workouts yet. Start your first workout to see it here.</p>
             </div>
           )}
         </div>
@@ -71,15 +69,15 @@ function Dashboard({ workouts, isGuest, loading }) {
         <div className="quick-actions">
           <h2>Quick Actions</h2>
           <div className="action-buttons">
-            <Link to={isGuest ? '/login' : '/workout'} className="action-btn primary">
-              {isGuest ? 'Sign in to start tracking' : 'Start New Workout'}
+            <Link to="/workout" className="action-btn primary">
+              Start New Workout
             </Link>
             <Link to="/" className="action-btn secondary">
               Browse Exercises
             </Link>
-            {!isGuest && <Link to="/progress" className="action-btn secondary">
+            <Link to="/progress" className="action-btn secondary">
               View Progress
-            </Link>}
+            </Link>
           </div>
         </div>
       </div>

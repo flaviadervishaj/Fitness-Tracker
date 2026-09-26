@@ -40,9 +40,9 @@ function Navigation() {
           className={`nav-links ${menuOpen ? 'is-open' : ''}`}
           onClick={(event) => { if (event.target.closest('a')) setMenuOpen(false) }}
         >
-          <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
+          {user && <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
             Dashboard
-          </Link>
+          </Link>}
           {user && <Link to="/workout" className={isActive('/workout') ? 'active' : ''}>
             Workout
           </Link>}
@@ -184,7 +184,9 @@ function AppContent() {
             <Route
               path="/dashboard"
               element={
-                <Dashboard workouts={workouts} isGuest={!user} loading={loading} />
+                <ProtectedRoute>
+                  <Dashboard workouts={workouts} loading={loading} />
+                </ProtectedRoute>
               } 
             />
             <Route 
