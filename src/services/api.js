@@ -51,16 +51,11 @@ async function apiCall(endpoint, options = {}, authenticated = true) {
 
 export const exerciseAPI = {
   getAll: () => apiCall('/exercises', {}, false),
-  getById: (id) => apiCall(`/exercises/${id}`, {}, false),
-  create: (exercise) => apiCall('/exercises', { method: 'POST', body: exercise }),
 }
 
 export const workoutAPI = {
   getAll: () => apiCall('/workouts'),
-  getById: (id) => apiCall(`/workouts/${id}`),
   create: (workout) => apiCall('/workouts', { method: 'POST', body: workout }),
   update: (id, workout) => apiCall(`/workouts/${id}`, { method: 'PUT', body: workout }),
   delete: (id) => apiCall(`/workouts/${id}`, { method: 'DELETE' }),
 }
-
-export const healthCheck = () => apiCall('/health')
