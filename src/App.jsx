@@ -40,13 +40,13 @@ function Navigation() {
           className={`nav-links ${menuOpen ? 'is-open' : ''}`}
           onClick={(event) => { if (event.target.closest('a')) setMenuOpen(false) }}
         >
-          <Link to="/" className={isActive('/') ? 'active' : ''}>
+          <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
             Dashboard
           </Link>
           {user && <Link to="/workout" className={isActive('/workout') ? 'active' : ''}>
             Workout
           </Link>}
-          <Link to="/exercises" className={isActive('/exercises') ? 'active' : ''}>
+          <Link to="/" className={isActive('/') || isActive('/exercises') ? 'active' : ''}>
             Exercises
           </Link>
           {user && <Link to="/progress" className={isActive('/progress') ? 'active' : ''}>
@@ -68,6 +68,7 @@ function Navigation() {
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -78,7 +79,13 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  return user ? children : <Navigate to="/login" replace />
+  return user ? children : <Navigate to={`/login${location.search}`} replace />
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => window.scrollTo(0, 0), [pathname])
+  return null
 }
 
 function AppContent() {
@@ -174,8 +181,8 @@ function AppContent() {
         <main className="main-content">
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route 
-              path="/" 
+            <Route
+              path="/dashboard"
               element={
                 <Dashboard workouts={workouts} isGuest={!user} loading={loading} />
               } 
@@ -192,8 +199,8 @@ function AppContent() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/exercises" 
+            <Route
+              path="/"
               element={
                 <ExerciseLibrary
                   exercises={exercises}
@@ -203,6 +210,7 @@ function AppContent() {
                 />
               } 
             />
+            <Route path="/exercises" element={<Navigate to="/" replace />} />
             <Route 
               path="/progress" 
               element={
@@ -223,6 +231,7 @@ function App() {
     <ToastProvider>
       <AuthProvider>
         <Router>
+          <ScrollToTop />
           <AppContent />
         </Router>
       </AuthProvider>

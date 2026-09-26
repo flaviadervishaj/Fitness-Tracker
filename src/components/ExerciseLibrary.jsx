@@ -1,10 +1,14 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { getExerciseImage } from '../services/exerciseImages'
+import { getExerciseGuide } from '../data/exerciseGuides'
 import './ExerciseLibrary.css'
 
 function ExerciseLibrary({ exercises, loading, error, onRetry }) {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
+  const { user } = useAuth()
 
   const categories = ['All', ...new Set(exercises.map(ex => ex.category))]
 
@@ -18,7 +22,7 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
   return (
     <div className="exercise-library">
       <h1>Exercise Library</h1>
-      <p className="library-subtitle">Browse and learn about different exercises</p>
+      <p className="library-subtitle">Find an exercise, learn the movement, and add it to your workout.</p>
 
       <div className="library-controls">
         <div className="search-box">
@@ -46,6 +50,7 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
       <div className="exercises-grid">
         {filteredExercises.map(exercise => {
           const image = getExerciseImage(exercise)
+          const guide = getExerciseGuide(exercise.name)
           return <div key={exercise.id} className="exercise-card">
             {image && (
               <div className="exercise-card-image">
@@ -66,8 +71,20 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
               <div className="exercise-muscle">
                 <strong>Target Muscles:</strong> {exercise.muscle}
               </div>
-              <p className="exercise-description">{exercise.description}</p>
+              {guide ? (
+                <div className="exercise-guide">
+                  <h4>How to do it</h4>
+                  <ol>{guide.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+                  <a href={guide.source} target="_blank" rel="noopener noreferrer">Full technique guide</a>
+                </div>
+              ) : <p className="exercise-description">{exercise.description}</p>}
             </div>
+            <Link
+              className="exercise-add"
+              to={user ? `/workout?exercise=${exercise.id}` : `/login?exercise=${exercise.id}`}
+            >
+              {user ? 'Add to workout' : 'Sign in to add'}
+            </Link>
           </div>
         })}
       </div>

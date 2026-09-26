@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { workoutAPI } from '../services/api'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,6 +9,8 @@ import './WorkoutTracker.css'
 function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
   const toast = useToast()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const preselectedExercise = useRef(null)
   const { logout } = useAuth()
   const [workoutName, setWorkoutName] = useState('')
   const [selectedExercises, setSelectedExercises] = useState([])
@@ -23,6 +25,15 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
   })
 
   const exercisesList = Array.isArray(exercises) ? exercises : []
+
+  useEffect(() => {
+    const exerciseId = Number(searchParams.get('exercise'))
+    if (!Number.isInteger(exerciseId) || exerciseId <= 0 || exerciseId === preselectedExercise.current) return
+    if (!exercisesList.some((exercise) => exercise.id === exerciseId)) return
+    preselectedExercise.current = exerciseId
+    setCurrentExercise((current) => ({ ...current, exerciseId: String(exerciseId) }))
+    setShowExerciseForm(true)
+  }, [searchParams, exercisesList])
 
   const handleAddExercise = () => {
     if (!currentExercise.exerciseId || !currentExercise.sets || !currentExercise.reps) {

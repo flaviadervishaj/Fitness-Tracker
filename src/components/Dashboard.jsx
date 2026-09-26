@@ -74,7 +74,7 @@ function Dashboard({ workouts, isGuest, loading }) {
             <Link to={isGuest ? '/login' : '/workout'} className="action-btn primary">
               {isGuest ? 'Sign in to start tracking' : 'Start New Workout'}
             </Link>
-            <Link to="/exercises" className="action-btn secondary">
+            <Link to="/" className="action-btn secondary">
               Browse Exercises
             </Link>
             {!isGuest && <Link to="/progress" className="action-btn secondary">

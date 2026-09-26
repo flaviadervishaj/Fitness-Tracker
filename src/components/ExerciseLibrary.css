@@ -92,6 +92,8 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 191, 255, 0.3);
   transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
 }
 
 .exercise-card:hover {
@@ -153,6 +155,7 @@
   color: #666;
   padding: 0 1rem 1rem 1rem;
   font-size: 0.9rem;
+  flex: 1;
 }
 
 .exercise-muscle {
@@ -171,6 +174,45 @@
   margin: 0;
   font-size: 0.85rem;
   color: #666;
+}
+
+.exercise-guide h4 {
+  color: #1a1a1a;
+  font-size: 0.9rem;
+  margin: 0.9rem 0 0.5rem;
+}
+
+.exercise-guide ol {
+  padding-left: 1.2rem;
+  line-height: 1.45;
+}
+
+.exercise-guide li + li {
+  margin-top: 0.35rem;
+}
+
+.exercise-guide a {
+  display: inline-block;
+  margin-top: 0.7rem;
+  color: #0066cc;
+  font-weight: 600;
+}
+
+.exercise-add {
+  display: block;
+  margin: 0 1rem 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #0675c9;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.exercise-add:hover,
+.exercise-add:focus-visible {
+  background: #005b9e;
 }
 
 .no-results {
@@ -192,6 +234,5 @@
     grid-template-columns: 1fr;
   }
 }
-
 
 

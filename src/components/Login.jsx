@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './Login.css'
 
@@ -11,6 +11,7 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -21,7 +22,10 @@ function Login() {
       const result = isRegister
         ? await register(username, email.trim() || undefined, password)
         : await login(username, password)
-      if (result.success) navigate('/')
+      if (result.success) {
+        const exerciseId = Number(searchParams.get('exercise'))
+        navigate(Number.isInteger(exerciseId) && exerciseId > 0 ? `/workout?exercise=${exerciseId}` : '/dashboard')
+      }
     } finally {
       setIsSubmitting(false)
     }
