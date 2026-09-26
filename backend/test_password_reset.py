@@ -57,6 +57,13 @@ class PasswordResetTests(unittest.TestCase):
             self.assertIn('If an account', response.json['message'])
             send.assert_not_called()
 
+    def test_registration_requires_email_when_recovery_is_enabled(self):
+        response = self.client.post('/api/auth/register', json={
+            'username': 'new-user', 'password': 'a-secure-password',
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('email', response.json['error'])
+
 
 if __name__ == '__main__':
     unittest.main()
