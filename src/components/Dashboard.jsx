@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import './Dashboard.css'
 
-function Dashboard({ workouts }) {
+function Dashboard({ workouts, isGuest }) {
   const totalWorkouts = workouts.length
   const thisWeekWorkouts = workouts.filter(workout => {
     const workoutDate = new Date(workout.date)
@@ -26,9 +26,11 @@ function Dashboard({ workouts }) {
   return (
     <div className="dashboard">
       <h1 className="dashboard-title">Welcome to Your Fitness Journey! 🏋️</h1>
-      <p className="dashboard-subtitle">Track your progress and achieve your goals</p>
+      <p className="dashboard-subtitle">
+        {isGuest ? 'Explore exercises, then sign in to track your workouts and progress.' : 'Track your progress and achieve your goals'}
+      </p>
 
-      <div className="stats-grid">
+      {!isGuest && <div className="stats-grid">
         {stats.map((stat, index) => (
           <div key={index} className="stat-card" style={{ borderTopColor: stat.color }}>
             <div className="stat-icon">{stat.icon}</div>
@@ -38,11 +40,11 @@ function Dashboard({ workouts }) {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
       <div className="dashboard-row">
         <div className="dashboard-section recent-workouts-section">
-          <h2>Recent Workouts</h2>
+          <h2>{isGuest ? 'Your workout space' : 'Recent Workouts'}</h2>
           {recentWorkouts.length > 0 ? (
             <div className="workout-list">
               {recentWorkouts.map((workout, index) => (
@@ -60,7 +62,7 @@ function Dashboard({ workouts }) {
             </div>
           ) : (
             <div className="empty-state">
-              <p>No workouts yet. Start your first workout to see it here!</p>
+              <p>{isGuest ? 'Sign in to save workouts and see your activity here.' : 'No workouts yet. Start your first workout to see it here!'}</p>
             </div>
           )}
         </div>
@@ -68,15 +70,15 @@ function Dashboard({ workouts }) {
         <div className="quick-actions">
           <h2>Quick Actions</h2>
           <div className="action-buttons">
-            <Link to="/workout" className="action-btn primary">
-              ➕ Start New Workout
+            <Link to={isGuest ? '/login' : '/workout'} className="action-btn primary">
+              {isGuest ? 'Sign in to start tracking' : '➕ Start New Workout'}
             </Link>
             <Link to="/exercises" className="action-btn secondary">
               📚 Browse Exercises
             </Link>
-            <Link to="/progress" className="action-btn secondary">
+            {!isGuest && <Link to="/progress" className="action-btn secondary">
               📈 View Progress
-            </Link>
+            </Link>}
           </div>
         </div>
       </div>
@@ -85,7 +87,6 @@ function Dashboard({ workouts }) {
 }
 
 export default Dashboard
-
 
 
 

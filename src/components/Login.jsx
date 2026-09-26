@@ -89,10 +89,10 @@ function Login() {
             </button>
           </p>
         </div>
+        <Link to="/" className="login-back-link">← Back to home</Link>
       </div>
     </div>
   )
 }
 
 export default Login
-

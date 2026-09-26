@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import './ExerciseLibrary.css'
 
-function ExerciseLibrary({ exercises }) {
+function ExerciseLibrary({ exercises, loading, error }) {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -77,7 +77,7 @@ function ExerciseLibrary({ exercises }) {
 
       {filteredExercises.length === 0 && (
         <div className="no-results">
-          <p>No exercises found matching your search.</p>
+          <p>{loading ? 'Loading exercises…' : error ? 'Exercises could not be loaded. Please try again later.' : 'No exercises found matching your search.'}</p>
         </div>
       )}
     </div>
@@ -85,4 +85,3 @@ function ExerciseLibrary({ exercises }) {
 }
 
 export default ExerciseLibrary
-
