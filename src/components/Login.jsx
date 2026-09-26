@@ -60,12 +60,13 @@ function Login() {
 
           {isRegister && (
             <div className="form-group">
-              <label>Email (Optional)</label>
+                <label>Email{recoveryAvailable ? '' : ' (Optional)'}</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email (optional)"
+                  placeholder="Enter your email"
+                  required={recoveryAvailable}
               />
             </div>
           )}

@@ -181,8 +181,13 @@ def register():
         if User.query.filter_by(username=data['username']).first():
             return jsonify({'error': 'Username already exists'}), 400
         
-        # Email is optional, but if provided, check if it's already taken
-        email = data.get('email', '').strip()
+        # Once recovery is enabled, new accounts need a reachable address.
+        raw_email = data.get('email', '')
+        if not isinstance(raw_email, str):
+            return jsonify({'error': 'Enter a valid email address'}), 400
+        email = raw_email.strip().lower()
+        if reset_email_enabled() and (not email or '@' not in email or email.endswith('@fitness-tracker.local')):
+            return jsonify({'error': 'An email address is required for password recovery'}), 400
         if email:
             if User.query.filter_by(email=email).first():
                 return jsonify({'error': 'Email already exists'}), 400

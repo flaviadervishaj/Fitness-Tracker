@@ -51,7 +51,7 @@ Open `http://localhost:5173`. Vite forwards `/api` requests to the local Flask s
 
 The frontend is configured for Vercel, including a rewrite for direct links to client routes. The Flask service uses `render.yaml`. Set `DATABASE_URL` and `SECRET_KEY` on the backend. To connect the frontend to another backend, set `VITE_API_URL` to its URL ending in `/api` at build time. Environment files and credentials are excluded from Git.
 
-Password recovery is available when `RESEND_API_KEY`, `RESET_EMAIL_FROM` (an address on a verified sending domain), and `FRONTEND_URL` (the public frontend origin) are set on the backend. The sign-in page hides the reset link until these are configured. Reset links expire after 30 minutes and become invalid after a password change; existing sessions are also invalidated. Accounts created without a real email address cannot receive reset messages.
+Password recovery is available when `RESEND_API_KEY`, `RESET_EMAIL_FROM` (an address on a verified sending domain), and `FRONTEND_URL` (the public frontend origin) are set on the backend. The sign-in page hides the reset link until these are configured. New accounts then require an email address. Reset links expire after 30 minutes and become invalid after a password change; existing sessions are also invalidated. Older accounts created without a real email address cannot receive reset messages.
 
 ## Project layout
 
