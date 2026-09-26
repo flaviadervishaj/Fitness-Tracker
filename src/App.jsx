@@ -66,7 +66,6 @@ function AppContent() {
   const [workouts, setWorkouts] = useState([])
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(true)
-  const [shouldRedirect, setShouldRedirect] = useState(false)
   const { user, loading: authLoading, logout } = useAuth()
   const toast = useToast()
   const fetchedUserIdRef = useRef(null)
@@ -93,32 +92,20 @@ function AppContent() {
         setLoading(true)
         fetchedUserIdRef.current = user.id
         
-        const handleAuthError = (err) => {
-          if (err.message === 'Authentication required') {
-            logout()
-            setShouldRedirect(true)
-            toast.error('Session expired. Please login again.')
-          }
-          return []
-        }
-        
         const [exercisesData, workoutsData] = await Promise.all([
-          exerciseAPI.getAll().catch(handleAuthError),
-          workoutAPI.getAll().catch(handleAuthError)
+          exerciseAPI.getAll(),
+          workoutAPI.getAll()
         ])
         
         setExercises(Array.isArray(exercisesData) ? exercisesData : [])
         setWorkouts(Array.isArray(workoutsData) ? workoutsData : [])
-        
-        if ((!exercisesData || exercisesData.length === 0) && (!workoutsData || workoutsData.length === 0)) {
-          toast.error('Failed to load data. Make sure the backend server is running.')
-        } else if (!exercisesData || exercisesData.length === 0) {
-          toast.warning('Failed to load exercises. Please refresh the page.')
-        } else if (!workoutsData || workoutsData.length === 0) {
-          toast.warning('Failed to load workouts. Please refresh the page.')
-        }
       } catch (err) {
-        toast.error('Failed to load data. Make sure the backend server is running.')
+        if (err.message === 'Authentication required') {
+          logout()
+          toast.error('Session expired. Please login again.')
+        } else {
+          toast.error('Failed to load data. Please refresh and try again.')
+        }
         setExercises([])
         setWorkouts([])
         fetchedUserIdRef.current = null
@@ -138,7 +125,6 @@ function AppContent() {
     } catch (err) {
       if (err.message === 'Authentication required') {
         logout()
-        setShouldRedirect(true)
         toast.error('Session expired. Please login again.')
       } else {
         toast.error('Failed to refresh workouts')
@@ -146,7 +132,6 @@ function AppContent() {
     }
   }
 
-  if (shouldRedirect) return <Navigate to="/login" replace />
   if (authLoading || (user && loading)) {
     return (
       <div className="app">
@@ -159,8 +144,7 @@ function AppContent() {
   }
 
   return (
-    <Router>
-      <div className="app">
+    <div className="app">
         <Navigation />
         <main className="main-content">
           <Routes>
@@ -204,8 +188,7 @@ function AppContent() {
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </main>
-      </div>
-    </Router>
+    </div>
   )
 }
 
@@ -213,7 +196,9 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <Router>
+          <AppContent />
+        </Router>
       </AuthProvider>
     </ToastProvider>
   )

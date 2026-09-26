@@ -1,4 +1,3 @@
-// Use environment variable for production, or proxy for development
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 const getAuthToken = () => localStorage.getItem('token')
@@ -6,59 +5,48 @@ const getAuthToken = () => localStorage.getItem('token')
 async function apiCall(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`
   const token = getAuthToken()
-  
+
   const config = {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
-    ...options,
   }
 
   if (config.body && typeof config.body === 'object') {
     config.body = JSON.stringify(config.body)
   }
 
+  let response
   try {
-    const response = await fetch(url, config)
-    
-    // Check content type before parsing
-    const contentType = response.headers.get('content-type') || ''
-    
-    if (response.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      throw new Error('Authentication required')
-    }
-    
-    if (!response.ok) {
-      // Try to parse as JSON first
-      if (contentType.includes('application/json')) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `API error: ${response.status}`)
-      } else {
-        // If not JSON, read as text to see what we got
-        const text = await response.text()
-        throw new Error(`API returned non-JSON response (${response.status}). Check if VITE_API_URL is configured correctly. URL: ${url}. Response: ${text.substring(0, 100)}`)
-      }
-    }
-    
-    // Check if response is JSON before parsing
-    if (!contentType.includes('application/json')) {
-      const text = await response.text()
-      throw new Error(`API returned non-JSON response. Check if VITE_API_URL is configured correctly. URL: ${url}. Response: ${text.substring(0, 100)}`)
-    }
-    
-    return await response.json()
-  } catch (error) {
-    // If it's already our custom error, throw it
-    if (error.message.includes('VITE_API_URL') || error.message.includes('non-JSON')) {
-      throw error
-    }
-    // Otherwise, wrap it with more context
-    throw new Error(`API call failed: ${error.message}. URL: ${url}`)
+    response = await fetch(url, config)
+  } catch {
+    throw new Error('Unable to connect to the server. Please try again.')
   }
+
+  const contentType = response.headers.get('content-type') || ''
+
+  if (response.status === 401) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    throw new Error('Authentication required')
+  }
+
+  if (!response.ok) {
+    if (contentType.includes('application/json')) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || `API error: ${response.status}`)
+    }
+    throw new Error(`Server request failed (${response.status}). Please try again.`)
+  }
+
+  if (!contentType.includes('application/json')) {
+    throw new Error('The server returned an unexpected response. Please try again.')
+  }
+
+  return response.json()
 }
 
 export const exerciseAPI = {
@@ -76,4 +64,3 @@ export const workoutAPI = {
 }
 
 export const healthCheck = () => apiCall('/health')
-
