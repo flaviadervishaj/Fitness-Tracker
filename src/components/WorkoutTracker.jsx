@@ -94,7 +94,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
           exerciseId: ex.exerciseId,
           sets: ex.sets,
           reps: ex.reps,
-          weight: ex.weight || null,
+          weight: ex.weight ?? null,
           notes: ex.notes || ''
         })),
         duration: workoutDuration

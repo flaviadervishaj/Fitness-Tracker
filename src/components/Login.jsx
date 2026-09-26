@@ -8,22 +8,22 @@ function Login() {
   const [password, setPassword] = useState('')
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    if (isRegister) {
-      const result = await register(username, email.trim() || undefined, password)
-      if (result.success) {
-        navigate('/')
-      }
-    } else {
-      const result = await login(username, password)
-      if (result.success) {
-        navigate('/')
-      }
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+    try {
+      const result = isRegister
+        ? await register(username, email.trim() || undefined, password)
+        : await login(username, password)
+      if (result.success) navigate('/')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -72,8 +72,8 @@ function Login() {
             />
           </div>
 
-          <button type="submit" className="login-btn">
-            {isRegister ? 'Sign Up' : 'Sign In'}
+          <button type="submit" className="login-btn" disabled={isSubmitting}>
+            {isSubmitting ? 'Please wait…' : isRegister ? 'Sign Up' : 'Sign In'}
           </button>
         </form>
 

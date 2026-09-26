@@ -21,7 +21,7 @@ function Dashboard({ workouts, isGuest }) {
     { label: 'Total Minutes', value: totalDuration, icon: '⏱️', color: '#00ced1' },
   ]
 
-  const recentWorkouts = workouts.slice(-3).reverse()
+  const recentWorkouts = workouts.slice(0, 3)
 
   return (
     <div className="dashboard">
@@ -87,6 +87,5 @@ function Dashboard({ workouts, isGuest }) {
 }
 
 export default Dashboard
-
 
 

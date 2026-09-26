@@ -93,10 +93,12 @@ A modern, full-stack fitness tracking application with a React frontend and Pyth
    ```
    Replace `your_password` with your PostgreSQL password.
 
-7. **Initialize the database**
+7. **Initialize the database** (keeps existing users and workouts)
    ```bash
    python init_db.py
    ```
+
+   For an intentional reset of a local development database, use `python init_db.py --reset`. This deletes all existing data.
 
 8. **Start the backend server**
    ```bash
@@ -304,7 +306,7 @@ Fitness-Tracker/
 **Authentication Issues:**
 - Clear localStorage: `localStorage.clear()` in browser console
 - Check that JWT token is being stored correctly
-- Verify token expiration (tokens expire after 24 hours)
+- Verify token expiration (tokens expire after 7 days)
 
 ## Development
 
@@ -346,7 +348,7 @@ The frontend is configured to proxy API requests to the backend during developme
 
 - All requests to `/api/*` are proxied to `http://localhost:5000/api/*`
 - CORS is handled automatically
-- In production, update `API_BASE_URL` in `src/services/api.js`
+- In production, set `VITE_API_URL` to the backend URL ending in `/api` if using another backend. The hosted preview and production site use the same public Flask API by default.
 
 ### Authentication Flow
 

@@ -70,11 +70,14 @@ function AppContent() {
   const [loading, setLoading] = useState(false)
   const [exercisesLoading, setExercisesLoading] = useState(true)
   const [exercisesError, setExercisesError] = useState(false)
+  const [exerciseRequestKey, setExerciseRequestKey] = useState(0)
   const { user, loading: authLoading, logout } = useAuth()
   const toast = useToast()
 
   useEffect(() => {
     let active = true
+    setExercisesLoading(true)
+    setExercisesError(false)
     exerciseAPI.getAll()
       .then((data) => {
         if (active) setExercises(Array.isArray(data) ? data : [])
@@ -86,7 +89,7 @@ function AppContent() {
         if (active) setExercisesLoading(false)
       })
     return () => { active = false }
-  }, [])
+  }, [exerciseRequestKey])
 
   useEffect(() => {
     if (authLoading) return
@@ -175,7 +178,12 @@ function AppContent() {
             <Route 
               path="/exercises" 
               element={
-                <ExerciseLibrary exercises={exercises} loading={exercisesLoading} error={exercisesError} />
+                <ExerciseLibrary
+                  exercises={exercises}
+                  loading={exercisesLoading}
+                  error={exercisesError}
+                  onRetry={() => setExerciseRequestKey((key) => key + 1)}
+                />
               } 
             />
             <Route 
