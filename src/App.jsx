@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom'
 import Dashboard from './components/Dashboard'
 import WorkoutTracker from './components/WorkoutTracker'
@@ -6,6 +6,7 @@ import ExerciseLibrary from './components/ExerciseLibrary'
 import Progress from './components/Progress'
 import Login from './components/Login'
 import { exerciseAPI, workoutAPI } from './services/api'
+import { includedExercises } from './data/exercises'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import './App.css'
@@ -13,34 +14,53 @@ import './App.css'
 function Navigation() {
   const location = useLocation()
   const { user, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => setMenuOpen(false), [location.pathname])
   
   const isActive = (path) => location.pathname === path
-
-  if (!user) return null
 
   return (
     <nav className="navbar">
       <div className="nav-container">
         <Link to="/" className="logo">
-          💪 Fitness Tracker
+          Fitness Tracker
         </Link>
-        <div className="nav-links">
-          <Link to="/" className={isActive('/') ? 'active' : ''}>
+        <button
+          type="button"
+          className="menu-toggle"
+          aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={menuOpen}
+          aria-controls="primary-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <div
+          id="primary-navigation"
+          className={`nav-links ${menuOpen ? 'is-open' : ''}`}
+          onClick={(event) => { if (event.target.closest('a')) setMenuOpen(false) }}
+        >
+          {user && <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
             Dashboard
-          </Link>
-          <Link to="/workout" className={isActive('/workout') ? 'active' : ''}>
+          </Link>}
+          {user && <Link to="/workout" className={isActive('/workout') ? 'active' : ''}>
             Workout
-          </Link>
-          <Link to="/exercises" className={isActive('/exercises') ? 'active' : ''}>
+          </Link>}
+          <Link to="/" className={isActive('/') || isActive('/exercises') ? 'active' : ''}>
             Exercises
           </Link>
-          <Link to="/progress" className={isActive('/progress') ? 'active' : ''}>
+          {user && <Link to="/progress" className={isActive('/progress') ? 'active' : ''}>
             Progress
-          </Link>
-          <div className="user-menu">
-            <span className="username">{user.username}</span>
-            <button onClick={logout} className="logout-btn">Logout</button>
-          </div>
+          </Link>}
+          {user ? (
+            <div className="user-menu">
+              <span className="username">{user.username}</span>
+              <button onClick={() => { logout(); setMenuOpen(false) }} className="logout-btn">Logout</button>
+            </div>
+          ) : (
+            <Link to="/login" className={isActive('/login') ? 'active' : ''}>Sign in</Link>
+          )}
         </div>
       </div>
     </nav>
@@ -49,6 +69,7 @@ function Navigation() {
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -59,75 +80,108 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  return user ? children : <Navigate to="/login" replace />
+  return user ? children : <Navigate to={`/login${location.search}`} replace />
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [pathname])
+  return null
+}
+
+class PageErrorBoundary extends React.Component {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error, details) {
+    console.error('Page rendering failed', error, details)
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="page-error" role="alert">
+          <h1>This page could not load</h1>
+          <p>Please reload to continue.</p>
+          <button type="button" onClick={() => window.location.reload()}>Reload page</button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
 }
 
 function AppContent() {
   const [workouts, setWorkouts] = useState([])
-  const [exercises, setExercises] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [shouldRedirect, setShouldRedirect] = useState(false)
+  const [exercises, setExercises] = useState(includedExercises)
+  const [loading, setLoading] = useState(false)
+  const [exercisesLoading, setExercisesLoading] = useState(true)
+  const [exercisesError, setExercisesError] = useState(false)
+  const [exerciseRequestKey, setExerciseRequestKey] = useState(0)
   const { user, loading: authLoading, logout } = useAuth()
   const toast = useToast()
-  const fetchedUserIdRef = useRef(null)
 
   useEffect(() => {
+    let active = true
+    setExercisesLoading(true)
+    setExercisesError(false)
+    exerciseAPI.getAll()
+      .then((data) => {
+        if (!active) return
+        if (Array.isArray(data) && data.length > 0) {
+          setExercises(data)
+        } else {
+          setExercisesError(true)
+        }
+      })
+      .catch(() => {
+        if (active) setExercisesError(true)
+      })
+      .finally(() => {
+        if (active) setExercisesLoading(false)
+      })
+    return () => { active = false }
+  }, [exerciseRequestKey])
+
+  useEffect(() => {
+    if (authLoading) return
     if (!user) {
-      setExercises([])
       setWorkouts([])
       setLoading(false)
-      fetchedUserIdRef.current = null
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (authLoading || !user) {
-      if (!user && !authLoading) setLoading(false)
       return
     }
 
-    if (fetchedUserIdRef.current === user.id) return
+    let active = true
 
     const fetchData = async () => {
       try {
         setLoading(true)
-        fetchedUserIdRef.current = user.id
-        
-        const handleAuthError = (err) => {
-          if (err.message === 'Authentication required') {
-            logout()
-            setShouldRedirect(true)
-            toast.error('Session expired. Please login again.')
-          }
-          return []
-        }
-        
-        const [exercisesData, workoutsData] = await Promise.all([
-          exerciseAPI.getAll().catch(handleAuthError),
-          workoutAPI.getAll().catch(handleAuthError)
-        ])
-        
-        setExercises(Array.isArray(exercisesData) ? exercisesData : [])
+        const workoutsData = await workoutAPI.getAll()
+        if (!active) return
         setWorkouts(Array.isArray(workoutsData) ? workoutsData : [])
-        
-        if ((!exercisesData || exercisesData.length === 0) && (!workoutsData || workoutsData.length === 0)) {
-          toast.error('Failed to load data. Make sure the backend server is running.')
-        } else if (!exercisesData || exercisesData.length === 0) {
-          toast.warning('Failed to load exercises. Please refresh the page.')
-        } else if (!workoutsData || workoutsData.length === 0) {
-          toast.warning('Failed to load workouts. Please refresh the page.')
-        }
       } catch (err) {
-        toast.error('Failed to load data. Make sure the backend server is running.')
-        setExercises([])
+        if (!active) return
+        if (err.message === 'Authentication required') {
+          logout()
+          toast.error('Session expired. Please login again.')
+        } else {
+          toast.error('Failed to load workouts. Please refresh and try again.')
+        }
         setWorkouts([])
-        fetchedUserIdRef.current = null
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
 
     fetchData()
+    return () => { active = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, authLoading])
 
@@ -138,7 +192,6 @@ function AppContent() {
     } catch (err) {
       if (err.message === 'Authentication required') {
         logout()
-        setShouldRedirect(true)
         toast.error('Session expired. Please login again.')
       } else {
         toast.error('Failed to refresh workouts')
@@ -146,8 +199,7 @@ function AppContent() {
     }
   }
 
-  if (shouldRedirect) return <Navigate to="/login" replace />
-  if (authLoading || (user && loading)) {
+  if (authLoading) {
     return (
       <div className="app">
         <div className="loading-container">
@@ -159,17 +211,16 @@ function AppContent() {
   }
 
   return (
-    <Router>
-      <div className="app">
+    <div className="app">
         <Navigation />
         <main className="main-content">
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route 
-              path="/" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard workouts={workouts} />
+                  <Dashboard workouts={workouts} loading={loading} />
                 </ProtectedRoute>
               } 
             />
@@ -185,14 +236,19 @@ function AppContent() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/exercises" 
+            <Route
+              path="/"
               element={
-                <ProtectedRoute>
-                  <ExerciseLibrary exercises={exercises} />
-                </ProtectedRoute>
+                <ExerciseLibrary
+                  exercises={exercises}
+                  loading={exercisesLoading}
+                  error={exercisesError}
+                  apiReady={!exercisesLoading && !exercisesError}
+                  onRetry={() => setExerciseRequestKey((key) => key + 1)}
+                />
               } 
             />
+            <Route path="/exercises" element={<Navigate to="/" replace />} />
             <Route 
               path="/progress" 
               element={
@@ -201,11 +257,10 @@ function AppContent() {
                 </ProtectedRoute>
               } 
             />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-      </div>
-    </Router>
+    </div>
   )
 }
 
@@ -213,7 +268,12 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <Router>
+          <ScrollToTop />
+          <PageErrorBoundary>
+            <AppContent />
+          </PageErrorBoundary>
+        </Router>
       </AuthProvider>
     </ToastProvider>
   )

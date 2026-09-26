@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useToast } from './ToastContext'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+import { API_BASE_URL } from '../services/config'
 
 const AuthContext = createContext()
 
@@ -108,4 +107,3 @@ export function useAuth() {
   }
   return context
 }
-

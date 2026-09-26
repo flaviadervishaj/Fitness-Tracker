@@ -1,9 +1,14 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { getExerciseImage } from '../services/exerciseImages'
+import { getExerciseGuide } from '../data/exerciseGuides'
 import './ExerciseLibrary.css'
 
-function ExerciseLibrary({ exercises }) {
+function ExerciseLibrary({ exercises, loading, error, apiReady, onRetry }) {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
+  const { user } = useAuth()
 
   const categories = ['All', ...new Set(exercises.map(ex => ex.category))]
 
@@ -16,8 +21,14 @@ function ExerciseLibrary({ exercises }) {
 
   return (
     <div className="exercise-library">
-      <h1>Exercise Library 📚</h1>
-      <p className="library-subtitle">Browse and learn about different exercises</p>
+      <h1>Exercise Library</h1>
+      <p className="library-subtitle">Find an exercise, learn the movement, and add it to your workout.</p>
+      {error && (
+        <div className="library-notice" role="status">
+          <span>Workout actions are temporarily unavailable. You can still browse the exercise guides.</span>
+          <button type="button" onClick={onRetry}>Try again</button>
+        </div>
+      )}
 
       <div className="library-controls">
         <div className="search-box">
@@ -43,22 +54,19 @@ function ExerciseLibrary({ exercises }) {
       </div>
 
       <div className="exercises-grid">
-        {filteredExercises.map(exercise => (
-          <div key={exercise.id} className="exercise-card">
-            {exercise.image && (
+        {filteredExercises.map(exercise => {
+          const image = getExerciseImage(exercise)
+          const guide = getExerciseGuide(exercise.name)
+          return <div key={exercise.id} className="exercise-card">
+            {image && (
               <div className="exercise-card-image">
-                {exercise.image.startsWith('http') ? (
-                  <img 
-                    src={exercise.image} 
+                  <img
+                    src={image}
                     alt={exercise.name}
                     onError={(e) => {
-                      e.target.onerror = null
-                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="150"%3E%3Crect width="200" height="150" fill="%23e0e0e0"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" font-size="48"%3E💪%3C/text%3E%3C/svg%3E'
+                      e.currentTarget.style.display = 'none'
                     }}
                   />
-                ) : (
-                  <span>{exercise.image}</span>
-                )}
               </div>
             )}
             <div className="exercise-card-header">
@@ -69,10 +77,28 @@ function ExerciseLibrary({ exercises }) {
               <div className="exercise-muscle">
                 <strong>Target Muscles:</strong> {exercise.muscle}
               </div>
-              <p className="exercise-description">{exercise.description}</p>
+              {guide ? (
+                <div className="exercise-guide">
+                  <h4>How to do it</h4>
+                  <ol>{guide.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+                  <a href={guide.source} target="_blank" rel="noopener noreferrer">Full technique guide</a>
+                </div>
+              ) : <p className="exercise-description">{exercise.description}</p>}
             </div>
+            {apiReady ? (
+              <Link
+                className="exercise-add"
+                to={user ? `/workout?exercise=${exercise.id}` : `/login?exercise=${exercise.id}`}
+              >
+                {user ? 'Add to workout' : 'Sign in to add'}
+              </Link>
+            ) : (
+              <span className="exercise-add is-unavailable" aria-disabled="true">
+                {loading ? 'Connecting...' : 'Temporarily unavailable'}
+              </span>
+            )}
           </div>
-        ))}
+        })}
       </div>
 
       {filteredExercises.length === 0 && (
@@ -85,4 +111,3 @@ function ExerciseLibrary({ exercises }) {
 }
 
 export default ExerciseLibrary
-

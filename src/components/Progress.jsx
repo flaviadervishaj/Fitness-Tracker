@@ -7,6 +7,7 @@ function Progress({ workouts }) {
     workouts.forEach(workout => {
       const date = new Date(workout.date)
       // Get just the date part (without time)
+      if (Number.isNaN(date.getTime())) return
       const dateKey = date.toISOString().split('T')[0]
       
       if (!days[dateKey]) {
@@ -23,10 +24,10 @@ function Progress({ workouts }) {
       days[dateKey].duration += workout.duration || 0
     })
     
-    // Sort by date descending and take last 14 days
+    // Keep activity within the last two weeks.
     const sortedDays = Object.values(days)
       .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 14)
+      .filter(day => new Date(day.date) >= new Date(Date.now() - 14 * 24 * 60 * 60 * 1000))
     
     return sortedDays
   }
@@ -57,12 +58,11 @@ function Progress({ workouts }) {
 
   return (
     <div className="progress">
-      <h1>Your Progress 📈</h1>
+      <h1>Your Progress</h1>
       <p className="progress-subtitle">Track your fitness journey and achievements</p>
 
       <div className="progress-stats">
         <div className="progress-stat-card">
-          <div className="stat-icon">🏋️</div>
           <div className="stat-info">
             <div className="stat-number">{totalWorkouts}</div>
             <div className="stat-text">Total Workouts</div>
@@ -70,7 +70,6 @@ function Progress({ workouts }) {
         </div>
 
         <div className="progress-stat-card">
-          <div className="stat-icon">💪</div>
           <div className="stat-info">
             <div className="stat-number">{totalExercises}</div>
             <div className="stat-text">Exercises Completed</div>
@@ -78,7 +77,6 @@ function Progress({ workouts }) {
         </div>
 
         <div className="progress-stat-card">
-          <div className="stat-icon">⏱️</div>
           <div className="stat-info">
             <div className="stat-number">{totalDuration}</div>
             <div className="stat-text">Total Minutes</div>
@@ -86,7 +84,6 @@ function Progress({ workouts }) {
         </div>
 
         <div className="progress-stat-card">
-          <div className="stat-icon">📊</div>
           <div className="stat-info">
             <div className="stat-number">{avgWorkoutDuration}</div>
             <div className="stat-text">Avg Duration (min)</div>
@@ -169,7 +166,6 @@ function Progress({ workouts }) {
 
       {workouts.length === 0 && (
         <div className="empty-state-large">
-          <div className="empty-icon">📊</div>
           <h3>No Progress Data Yet</h3>
           <p>Start tracking your workouts to see your progress here!</p>
         </div>
@@ -179,7 +175,4 @@ function Progress({ workouts }) {
 }
 
 export default Progress
-
-
-
 

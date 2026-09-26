@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './Login.css'
 
@@ -8,29 +8,33 @@ function Login() {
   const [password, setPassword] = useState('')
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    if (isRegister) {
-      const result = await register(username, email.trim() || undefined, password)
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+    try {
+      const result = isRegister
+        ? await register(username, email.trim() || undefined, password)
+        : await login(username, password)
       if (result.success) {
-        navigate('/')
+        const exerciseId = Number(searchParams.get('exercise'))
+        navigate(Number.isInteger(exerciseId) && exerciseId > 0 ? `/workout?exercise=${exerciseId}` : '/dashboard')
       }
-    } else {
-      const result = await login(username, password)
-      if (result.success) {
-        navigate('/')
-      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>💪 Fitness Tracker</h1>
+        <h1>Fitness Tracker</h1>
         <h2>{isRegister ? 'Create Account' : 'Welcome Back'}</h2>
         <p className="login-subtitle">
           {isRegister ? 'Sign up to start tracking your fitness journey' : 'Sign in to continue'}
@@ -72,8 +76,8 @@ function Login() {
             />
           </div>
 
-          <button type="submit" className="login-btn">
-            {isRegister ? 'Sign Up' : 'Sign In'}
+          <button type="submit" className="login-btn" disabled={isSubmitting}>
+            {isSubmitting ? 'Please wait…' : isRegister ? 'Sign Up' : 'Sign In'}
           </button>
         </form>
 
@@ -89,10 +93,10 @@ function Login() {
             </button>
           </p>
         </div>
+        <Link to="/" className="login-back-link">← Back to home</Link>
       </div>
     </div>
   )
 }
 
 export default Login
-

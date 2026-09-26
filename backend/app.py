@@ -82,28 +82,28 @@ def seed_exercises():
         exercises_data = [
             {'name': 'Push-ups', 'category': 'Chest', 'muscle': 'Chest, Triceps', 
              'description': 'Classic bodyweight exercise for upper body strength', 
-             'image': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'},
+             'image': '/exercises/push-ups.jpg'},
             {'name': 'Squats', 'category': 'Legs', 'muscle': 'Quadriceps, Glutes', 
              'description': 'Fundamental lower body exercise', 
-             'image': 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=400&h=300&fit=crop'},
+             'image': '/exercises/squats.jpg'},
             {'name': 'Pull-ups', 'category': 'Back', 'muscle': 'Lats, Biceps', 
              'description': 'Upper body pulling exercise', 
-             'image': 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=300&fit=crop'},
+             'image': '/exercises/pull-ups.jpg'},
             {'name': 'Deadlifts', 'category': 'Back', 'muscle': 'Hamstrings, Glutes, Back', 
              'description': 'Compound movement for posterior chain', 
-             'image': 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=300&fit=crop'},
+             'image': '/exercises/deadlifts.jpg'},
             {'name': 'Bench Press', 'category': 'Chest', 'muscle': 'Chest, Shoulders, Triceps', 
              'description': 'Classic chest building exercise', 
-             'image': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'},
+             'image': '/exercises/bench-press.jpg'},
             {'name': 'Plank', 'category': 'Core', 'muscle': 'Abs, Core', 
              'description': 'Isometric core strengthening exercise', 
-             'image': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'},
+             'image': '/exercises/plank.jpg'},
             {'name': 'Lunges', 'category': 'Legs', 'muscle': 'Quadriceps, Glutes', 
              'description': 'Unilateral leg exercise', 
-             'image': 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=400&h=300&fit=crop'},
+             'image': '/exercises/lunges.jpg'},
             {'name': 'Shoulder Press', 'category': 'Shoulders', 'muscle': 'Deltoids, Triceps', 
              'description': 'Overhead pressing movement', 
-             'image': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop'},
+             'image': '/exercises/shoulder-press.jpg'},
         ]
         
         for ex_data in exercises_data:
@@ -121,8 +121,8 @@ def register():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
-        if not data.get('username') or not data.get('password'):
-            return jsonify({'error': 'Username and password are required'}), 400
+        if not isinstance(data.get('username'), str) or not data['username'].strip() or not isinstance(data.get('password'), str) or len(data['password']) < 6:
+            return jsonify({'error': 'Enter a username and a password of at least 6 characters'}), 400
         
         # Check if user already exists
         if User.query.filter_by(username=data['username']).first():
@@ -243,7 +243,7 @@ def create_exercise():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
-        if 'name' not in data:
+        if not isinstance(data.get('name'), str) or not data['name'].strip():
             return jsonify({'error': 'Exercise name is required'}), 400
         
         exercise = Exercise(
@@ -251,7 +251,7 @@ def create_exercise():
             category=data.get('category', 'Other'),
             muscle=data.get('muscle', ''),
             description=data.get('description', ''),
-            image=data.get('image', 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop') # Default image URL
+            image=data.get('image')
         )
         db.session.add(exercise)
         db.session.commit()
@@ -261,6 +261,31 @@ def create_exercise():
         return jsonify({'error': str(e)}), 500
 
 # Workout endpoints
+def validate_workout_data(data, require_all=False):
+    if not isinstance(data, dict):
+        return 'No data provided'
+    if require_all or 'name' in data:
+        if not isinstance(data.get('name'), str) or not data['name'].strip():
+            return 'Workout name is required'
+    if require_all or 'exercises' in data:
+        exercises = data.get('exercises')
+        if not isinstance(exercises, list) or not exercises:
+            return 'Add at least one exercise'
+        for entry in exercises:
+            if not isinstance(entry, dict) or not all(key in entry for key in ('exerciseId', 'sets', 'reps')):
+                return 'Exercise, sets, and reps are required'
+            if any(not isinstance(entry[key], int) or isinstance(entry[key], bool) or entry[key] <= 0 for key in ('sets', 'reps')):
+                return 'Sets and reps must be positive whole numbers'
+            if not isinstance(entry['exerciseId'], int) or not db.session.get(Exercise, entry['exerciseId']):
+                return 'Exercise not found'
+            weight = entry.get('weight')
+            if weight is not None and (not isinstance(weight, (int, float)) or isinstance(weight, bool) or weight < 0):
+                return 'Weight must be zero or greater'
+    duration = data.get('duration')
+    if duration is not None and (not isinstance(duration, int) or isinstance(duration, bool) or duration < 0):
+        return 'Duration must be zero or greater'
+    return None
+
 @app.route('/api/workouts', methods=['GET'])
 @token_required
 def get_workouts(current_user):
@@ -277,7 +302,7 @@ def get_workouts(current_user):
                 exercises.append({
                     'exerciseId': we.exercise_id,
                     'exerciseName': exercise.name if exercise else 'Unknown',
-                    'exerciseImage': exercise.image if exercise else '💪',
+                    'exerciseImage': exercise.image if exercise else None,
                     'sets': we.sets,
                     'reps': we.reps,
                     'weight': we.weight,
@@ -309,7 +334,7 @@ def get_workout(current_user, workout_id):
         exercises.append({
             'exerciseId': we.exercise_id,
             'exerciseName': exercise.name if exercise else 'Unknown',
-            'exerciseImage': exercise.image if exercise else '💪',
+            'exerciseImage': exercise.image if exercise else None,
             'sets': we.sets,
             'reps': we.reps,
             'weight': we.weight,
@@ -329,8 +354,9 @@ def get_workout(current_user, workout_id):
 def create_workout(current_user):
     try:
         data = request.json
-        if not data or 'name' not in data:
-            return jsonify({'error': 'Workout name is required'}), 400
+        error = validate_workout_data(data, require_all=True)
+        if error:
+            return jsonify({'error': error}), 400
         
         date_str = data.get('date', datetime.utcnow().isoformat())
         if 'Z' in date_str:
@@ -370,21 +396,28 @@ def create_workout(current_user):
 @token_required
 def update_workout(current_user, workout_id):
     """Update a workout"""
+    workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first()
+    if not workout:
+        return jsonify({'error': 'Workout not found'}), 404
     try:
-        workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first_or_404()
         data = request.json
         if not data:
             return jsonify({'error': 'No data provided'}), 400
+        error = validate_workout_data(data)
+        if error:
+            return jsonify({'error': error}), 400
         
         workout.name = data.get('name', workout.name)
         if 'date' in data:
             date_str = data['date']
+            if not isinstance(date_str, str):
+                return jsonify({'error': 'Invalid date'}), 400
             if 'Z' in date_str:
                 date_str = date_str.replace('Z', '+00:00')
             try:
                 workout.date = datetime.fromisoformat(date_str)
             except ValueError:
-                pass  # Keep existing date if parsing fails
+                return jsonify({'error': 'Invalid date'}), 400
         workout.duration = data.get('duration', workout.duration)
         
         # Update exercises if provided
@@ -414,8 +447,10 @@ def update_workout(current_user, workout_id):
 @token_required
 def delete_workout(current_user, workout_id):
     """Delete a workout"""
+    workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first()
+    if not workout:
+        return jsonify({'error': 'Workout not found'}), 404
     try:
-        workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first_or_404()
         
         # Delete associated workout exercises
         WorkoutExercise.query.filter_by(workout_id=workout.id).delete()

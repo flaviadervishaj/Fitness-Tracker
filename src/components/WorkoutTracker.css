@@ -5,8 +5,20 @@
 .workout-tracker h1 {
   color: white;
   font-size: 2.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   text-align: center;
+}
+
+.history-jump {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 1.5rem;
+  color: #c1eaff;
+  font-weight: 600;
+}
+
+#workout-history-title {
+  scroll-margin-top: 6rem;
 }
 
 .workout-form {
@@ -161,10 +173,6 @@
   object-position: center;
 }
 
-.exercise-item-image span {
-  /* Fallback për emoji */
-}
-
 .exercise-item:hover {
   background: white;
   border-left-color: #00bfff;
@@ -173,6 +181,7 @@
 
 .exercise-info {
   flex: 1;
+  min-width: 0;
 }
 
 .exercise-info h3 {
@@ -215,6 +224,90 @@
   transform: scale(1.1);
 }
 
+.btn-edit-exercise {
+  border: 1px solid #0877bc;
+  color: #075d95;
+  background: white;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-save:disabled,
+.history-actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-cancel-edit {
+  display: block;
+  margin: 1rem auto 0;
+  background: none;
+  border: 0;
+  color: #075d95;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.workout-history {
+  margin-top: 2rem;
+  color: white;
+}
+
+.workout-history h2 {
+  margin-bottom: 1rem;
+}
+
+.history-card {
+  background: white;
+  color: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(0, 191, 255, 0.25);
+}
+
+.history-card-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.history-card h3 {
+  margin-bottom: 0.35rem;
+}
+
+.history-card p {
+  color: #626b78;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.history-exercises {
+  margin-top: 0.35rem;
+}
+
+.history-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.history-actions button {
+  padding: 0.55rem 0.8rem;
+  background: white;
+  color: #075d95;
+  border: 1px solid #87a7bc;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.history-actions .history-delete {
+  color: #a22d35;
+  border-color: #d9a8ac;
+}
+
 .btn-save {
   background: linear-gradient(135deg, #00bfff 0%, #0096ff 50%, #40e0d0 100%);
   color: white;
@@ -252,8 +345,20 @@
   .btn-add {
     width: 100%;
   }
+
+  .history-card-main {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .exercise-item {
+    flex-wrap: wrap;
+    padding: 1rem;
+  }
+
+  .exercise-details {
+    flex-wrap: wrap;
+  }
 }
-
-
 
 
