@@ -5,7 +5,7 @@ import { getExerciseImage } from '../services/exerciseImages'
 import { getExerciseGuide } from '../data/exerciseGuides'
 import './ExerciseLibrary.css'
 
-function ExerciseLibrary({ exercises, loading, error, onRetry }) {
+function ExerciseLibrary({ exercises, loading, error, apiReady, onRetry }) {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
   const { user } = useAuth()
@@ -23,6 +23,12 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
     <div className="exercise-library">
       <h1>Exercise Library</h1>
       <p className="library-subtitle">Find an exercise, learn the movement, and add it to your workout.</p>
+      {error && (
+        <div className="library-notice" role="status">
+          <span>Workout actions are temporarily unavailable. You can still browse the exercise guides.</span>
+          <button type="button" onClick={onRetry}>Try again</button>
+        </div>
+      )}
 
       <div className="library-controls">
         <div className="search-box">
@@ -79,20 +85,25 @@ function ExerciseLibrary({ exercises, loading, error, onRetry }) {
                 </div>
               ) : <p className="exercise-description">{exercise.description}</p>}
             </div>
-            <Link
-              className="exercise-add"
-              to={user ? `/workout?exercise=${exercise.id}` : `/login?exercise=${exercise.id}`}
-            >
-              {user ? 'Add to workout' : 'Sign in to add'}
-            </Link>
+            {apiReady ? (
+              <Link
+                className="exercise-add"
+                to={user ? `/workout?exercise=${exercise.id}` : `/login?exercise=${exercise.id}`}
+              >
+                {user ? 'Add to workout' : 'Sign in to add'}
+              </Link>
+            ) : (
+              <span className="exercise-add is-unavailable" aria-disabled="true">
+                {loading ? 'Connecting...' : 'Temporarily unavailable'}
+              </span>
+            )}
           </div>
         })}
       </div>
 
       {filteredExercises.length === 0 && (
         <div className="no-results">
-          <p>{loading ? 'Loading exercises…' : error ? 'Exercises could not be loaded. Please try again later.' : 'No exercises found matching your search.'}</p>
-          {error && !loading && <button type="button" className="category-btn" onClick={onRetry}>Try again</button>}
+          <p>No exercises found matching your search.</p>
         </div>
       )}
     </div>

@@ -2,15 +2,15 @@ import { API_BASE_URL } from './config'
 
 const getAuthToken = () => localStorage.getItem('token')
 
-async function apiCall(endpoint, options = {}) {
+async function apiCall(endpoint, options = {}, authenticated = true) {
   const url = `${API_BASE_URL}${endpoint}`
   const token = getAuthToken()
 
   const config = {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(options.body && { 'Content-Type': 'application/json' }),
+      ...(authenticated && token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
   }
@@ -50,8 +50,8 @@ async function apiCall(endpoint, options = {}) {
 }
 
 export const exerciseAPI = {
-  getAll: () => apiCall('/exercises'),
-  getById: (id) => apiCall(`/exercises/${id}`),
+  getAll: () => apiCall('/exercises', {}, false),
+  getById: (id) => apiCall(`/exercises/${id}`, {}, false),
   create: (exercise) => apiCall('/exercises', { method: 'POST', body: exercise }),
 }
 

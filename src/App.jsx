@@ -6,6 +6,7 @@ import ExerciseLibrary from './components/ExerciseLibrary'
 import Progress from './components/Progress'
 import Login from './components/Login'
 import { exerciseAPI, workoutAPI } from './services/api'
+import { includedExercises } from './data/exercises'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import './App.css'
@@ -119,7 +120,7 @@ class PageErrorBoundary extends React.Component {
 
 function AppContent() {
   const [workouts, setWorkouts] = useState([])
-  const [exercises, setExercises] = useState([])
+  const [exercises, setExercises] = useState(includedExercises)
   const [loading, setLoading] = useState(false)
   const [exercisesLoading, setExercisesLoading] = useState(true)
   const [exercisesError, setExercisesError] = useState(false)
@@ -133,7 +134,12 @@ function AppContent() {
     setExercisesError(false)
     exerciseAPI.getAll()
       .then((data) => {
-        if (active) setExercises(Array.isArray(data) ? data : [])
+        if (!active) return
+        if (Array.isArray(data) && data.length > 0) {
+          setExercises(data)
+        } else {
+          setExercisesError(true)
+        }
       })
       .catch(() => {
         if (active) setExercisesError(true)
@@ -237,6 +243,7 @@ function AppContent() {
                   exercises={exercises}
                   loading={exercisesLoading}
                   error={exercisesError}
+                  apiReady={!exercisesLoading && !exercisesError}
                   onRetry={() => setExerciseRequestKey((key) => key + 1)}
                 />
               } 

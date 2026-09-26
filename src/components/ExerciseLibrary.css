@@ -16,6 +16,28 @@
   margin-bottom: 2rem;
 }
 
+.library-notice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+  background: #fff7e8;
+  color: #533a15;
+}
+
+.library-notice button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #b47d27;
+  border-radius: 6px;
+  background: white;
+  color: #533a15;
+  font: inherit;
+  cursor: pointer;
+}
+
 .library-controls {
   background: white;
   border-radius: 12px;
@@ -215,6 +237,18 @@
   background: #005b9e;
 }
 
+.exercise-add.is-unavailable {
+  background: #677583;
+  cursor: default;
+}
+
+@media (max-width: 480px) {
+  .library-notice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .no-results {
   text-align: center;
   padding: 3rem;
@@ -234,5 +268,4 @@
     grid-template-columns: 1fr;
   }
 }
-
 
