@@ -15,10 +15,10 @@ function Dashboard({ workouts, isGuest, loading }) {
   const totalDuration = workouts.reduce((sum, workout) => sum + (workout.duration || 0), 0)
 
   const stats = [
-    { label: 'Total Workouts', value: totalWorkouts, icon: '01', color: '#00bfff' },
-    { label: 'This Week', value: thisWeekWorkouts, icon: '02', color: '#0096ff' },
-    { label: 'Exercises Done', value: totalExercises, icon: '03', color: '#40e0d0' },
-    { label: 'Total Minutes', value: totalDuration, icon: '04', color: '#00ced1' },
+    { label: 'Total Workouts', value: totalWorkouts, color: '#00bfff' },
+    { label: 'This Week', value: thisWeekWorkouts, color: '#0096ff' },
+    { label: 'Exercises Done', value: totalExercises, color: '#40e0d0' },
+    { label: 'Total Minutes', value: totalDuration, color: '#00ced1' },
   ]
 
   const recentWorkouts = workouts.slice(0, 3)
@@ -33,7 +33,6 @@ function Dashboard({ workouts, isGuest, loading }) {
       {!isGuest && <div className="stats-grid">
         {stats.map((stat, index) => (
           <div key={index} className="stat-card" style={{ borderTopColor: stat.color }}>
-            <div className="stat-icon">{stat.icon}</div>
             <div className="stat-content">
               <div className="stat-value">{stat.value}</div>
               <div className="stat-label">{stat.label}</div>

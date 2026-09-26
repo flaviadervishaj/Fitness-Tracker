@@ -13,6 +13,9 @@ import './App.css'
 function Navigation() {
   const location = useLocation()
   const { user, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => setMenuOpen(false), [location.pathname])
   
   const isActive = (path) => location.pathname === path
 
@@ -22,7 +25,21 @@ function Navigation() {
         <Link to="/" className="logo">
           Fitness Tracker
         </Link>
-        <div className="nav-links">
+        <button
+          type="button"
+          className="menu-toggle"
+          aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={menuOpen}
+          aria-controls="primary-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <div
+          id="primary-navigation"
+          className={`nav-links ${menuOpen ? 'is-open' : ''}`}
+          onClick={(event) => { if (event.target.closest('a')) setMenuOpen(false) }}
+        >
           <Link to="/" className={isActive('/') ? 'active' : ''}>
             Dashboard
           </Link>
@@ -38,7 +55,7 @@ function Navigation() {
           {user ? (
             <div className="user-menu">
               <span className="username">{user.username}</span>
-              <button onClick={logout} className="logout-btn">Logout</button>
+              <button onClick={() => { logout(); setMenuOpen(false) }} className="logout-btn">Logout</button>
             </div>
           ) : (
             <Link to="/login" className={isActive('/login') ? 'active' : ''}>Sign in</Link>

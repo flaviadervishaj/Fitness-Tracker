@@ -40,10 +40,6 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 
-.progress-stat-card .stat-icon {
-  font-size: 2.5rem;
-}
-
 .stat-info {
   flex: 1;
 }
@@ -273,16 +269,12 @@
   }
 
   .progress-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
 
   .progress-stat-card {
     padding: 1rem;
-  }
-
-  .progress-stat-card .stat-icon {
-    font-size: 2rem;
   }
 
   .stat-number {
@@ -381,12 +373,27 @@
 }
 
 @media (max-width: 480px) {
-  .progress h1 {
-    font-size: 1.75rem;
+  .progress-stats {
+    gap: 0.75rem;
   }
 
-  .progress-stats {
-    grid-template-columns: 1fr;
+  .progress-stat-card {
+    min-height: 108px;
+    padding: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.65rem;
+  }
+
+  .stat-text {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .progress h1 {
+    font-size: 1.75rem;
   }
 
   .progress-section {
@@ -421,7 +428,5 @@
     top: -16px;
   }
 }
-
-
 
 

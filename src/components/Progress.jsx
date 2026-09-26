@@ -63,7 +63,6 @@ function Progress({ workouts }) {
 
       <div className="progress-stats">
         <div className="progress-stat-card">
-          <div className="stat-icon" aria-hidden="true">01</div>
           <div className="stat-info">
             <div className="stat-number">{totalWorkouts}</div>
             <div className="stat-text">Total Workouts</div>
@@ -71,7 +70,6 @@ function Progress({ workouts }) {
         </div>
 
         <div className="progress-stat-card">
-          <div className="stat-icon" aria-hidden="true">02</div>
           <div className="stat-info">
             <div className="stat-number">{totalExercises}</div>
             <div className="stat-text">Exercises Completed</div>
@@ -79,7 +77,6 @@ function Progress({ workouts }) {
         </div>
 
         <div className="progress-stat-card">
-          <div className="stat-icon" aria-hidden="true">03</div>
           <div className="stat-info">
             <div className="stat-number">{totalDuration}</div>
             <div className="stat-text">Total Minutes</div>
@@ -87,7 +84,6 @@ function Progress({ workouts }) {
         </div>
 
         <div className="progress-stat-card">
-          <div className="stat-icon" aria-hidden="true">04</div>
           <div className="stat-info">
             <div className="stat-number">{avgWorkoutDuration}</div>
             <div className="stat-text">Avg Duration (min)</div>
@@ -179,5 +175,4 @@ function Progress({ workouts }) {
 }
 
 export default Progress
-
 
