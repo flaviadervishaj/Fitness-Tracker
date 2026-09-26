@@ -15,6 +15,10 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
   const [workoutName, setWorkoutName] = useState('')
   const [selectedExercises, setSelectedExercises] = useState([])
   const [duration, setDuration] = useState('')
+  const [editingWorkoutId, setEditingWorkoutId] = useState(null)
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [deletingWorkoutId, setDeletingWorkoutId] = useState(null)
   const [showExerciseForm, setShowExerciseForm] = useState(false)
   const [currentExercise, setCurrentExercise] = useState({
     exerciseId: '',
@@ -71,7 +75,9 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       weight: weight
     }
 
-    setSelectedExercises([...selectedExercises, newExercise])
+    setSelectedExercises((selected) => editingExerciseIndex === null
+      ? [...selected, newExercise]
+      : selected.map((item, index) => index === editingExerciseIndex ? newExercise : item))
     setCurrentExercise({
       exerciseId: '',
       sets: '',
@@ -80,19 +86,67 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       notes: ''
     })
     setShowExerciseForm(false)
+    setEditingExerciseIndex(null)
   }
 
   const handleRemoveExercise = (index) => {
     setSelectedExercises(selectedExercises.filter((_, i) => i !== index))
+    setEditingExerciseIndex(null)
+    setShowExerciseForm(false)
+  }
+
+  const resetForm = () => {
+    setWorkoutName('')
+    setDuration('')
+    setSelectedExercises([])
+    setEditingWorkoutId(null)
+    setEditingExerciseIndex(null)
+    setShowExerciseForm(false)
+    setCurrentExercise({ exerciseId: '', sets: '', reps: '', weight: '', notes: '' })
+  }
+
+  const handleEditWorkout = (workout) => {
+    setEditingWorkoutId(workout.id)
+    setWorkoutName(workout.name)
+    setDuration(workout.duration == null ? '' : String(workout.duration))
+    setSelectedExercises(workout.exercises.map((exercise) => ({
+      ...exercise,
+      exerciseImage: getExerciseImage({ name: exercise.exerciseName, image: exercise.exerciseImage }),
+    })))
+    setShowExerciseForm(false)
+    setEditingExerciseIndex(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleDeleteWorkout = async (workout) => {
+    if (!window.confirm(`Delete "${workout.name}"? This cannot be undone.`)) return
+    setDeletingWorkoutId(workout.id)
+    try {
+      await workoutAPI.delete(workout.id)
+      if (editingWorkoutId === workout.id) resetForm()
+      if (onWorkoutSaved) await onWorkoutSaved()
+      toast.success('Workout deleted')
+    } catch (error) {
+      if (error.message === 'Authentication required') {
+        logout()
+        navigate('/login')
+      } else {
+        toast.error(error.message || 'Could not delete workout')
+      }
+    } finally {
+      setDeletingWorkoutId(null)
+    }
   }
 
   const handleSaveWorkout = async () => {
+    if (saving) return
     if (!workoutName.trim() || selectedExercises.length === 0) {
       toast.warning('Please provide a workout name and add at least one exercise')
       return
     }
 
     try {
+      setSaving(true)
       const workoutDuration = duration !== '' ? Number(duration) : null
       if (workoutDuration !== null && (!Number.isInteger(workoutDuration) || workoutDuration < 0)) {
         toast.warning('Enter a valid duration')
@@ -101,7 +155,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
 
       const newWorkout = {
         name: workoutName.trim(),
-        date: new Date().toISOString(),
+        ...(!editingWorkoutId && { date: new Date().toISOString() }),
         exercises: selectedExercises.map(ex => ({
           exerciseId: ex.exerciseId,
           sets: ex.sets,
@@ -112,16 +166,18 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
         duration: workoutDuration
       }
 
-      await workoutAPI.create(newWorkout)
-      
-      setWorkoutName('')
-      setSelectedExercises([])
-      setDuration('')
-      setShowExerciseForm(false)
+      if (editingWorkoutId) {
+        await workoutAPI.update(editingWorkoutId, newWorkout)
+      } else {
+        await workoutAPI.create(newWorkout)
+      }
+
+      const wasEditing = editingWorkoutId !== null
+      resetForm()
       
       if (onWorkoutSaved) await onWorkoutSaved()
       
-      toast.success('Workout saved successfully!')
+      toast.success(wasEditing ? 'Workout updated' : 'Workout saved')
     } catch (error) {
       if (error.message === 'Authentication required') {
         logout()
@@ -130,12 +186,15 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
       } else {
         toast.error(`Failed to save workout: ${error.message || 'Please try again.'}`)
       }
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
     <div className="workout-tracker">
-      <h1>Track Your Workout</h1>
+      <h1>{editingWorkoutId ? 'Edit Workout' : 'Track Your Workout'}</h1>
+      <a className="history-jump" href="#workout-history-title">View workout history</a>
 
       <div className="workout-form">
         <div className="form-group">
@@ -163,7 +222,11 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
             <h2>Exercises</h2>
             <button type="button"
               className="btn-add"
-              onClick={() => setShowExerciseForm(!showExerciseForm)}
+              onClick={() => {
+                setShowExerciseForm(!showExerciseForm)
+                setEditingExerciseIndex(null)
+                setCurrentExercise({ exerciseId: '', sets: '', reps: '', weight: '', notes: '' })
+              }}
             >
               {showExerciseForm ? 'Cancel' : '+ Add Exercise'}
             </button>
@@ -231,7 +294,7 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
               </div>
 
               <button type="button" className="btn-primary" onClick={handleAddExercise}>
-                Add to Workout
+                {editingExerciseIndex === null ? 'Add to Workout' : 'Update Exercise'}
               </button>
             </div>
           )}
@@ -257,6 +320,17 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
                     </div>
                     {exercise.notes && <p className="exercise-notes">{exercise.notes}</p>}
                   </div>
+                  <button type="button" className="btn-edit-exercise" onClick={() => {
+                    setEditingExerciseIndex(index)
+                    setCurrentExercise({
+                      exerciseId: String(exercise.exerciseId),
+                      sets: String(exercise.sets),
+                      reps: String(exercise.reps),
+                      weight: exercise.weight == null ? '' : String(exercise.weight),
+                      notes: exercise.notes || '',
+                    })
+                    setShowExerciseForm(true)
+                  }}>Edit</button>
                   <button type="button"
                     className="btn-remove"
                     onClick={() => handleRemoveExercise(index)}
@@ -270,10 +344,32 @@ function WorkoutTracker({ workouts, onWorkoutSaved, exercises = [] }) {
           )}
         </div>
 
-        <button type="button" className="btn-save" onClick={handleSaveWorkout}>
-          Save Workout
+        <button type="button" className="btn-save" onClick={handleSaveWorkout} disabled={saving}>
+          {saving ? 'Saving...' : editingWorkoutId ? 'Update Workout' : 'Save Workout'}
         </button>
+        {editingWorkoutId && <button type="button" className="btn-cancel-edit" onClick={resetForm}>Cancel editing</button>}
       </div>
+
+      <section className="workout-history" aria-labelledby="workout-history-title">
+        <h2 id="workout-history-title">Workout History</h2>
+        {workouts.length === 0 ? <p>No workouts saved yet.</p> : workouts.map((workout) => (
+          <article key={workout.id} className="history-card">
+            <div className="history-card-main">
+              <div>
+                <h3>{workout.name}</h3>
+                <p>{new Date(workout.date).toLocaleDateString()} · {workout.exercises.length} exercises{workout.duration != null ? ` · ${workout.duration} min` : ''}</p>
+                <p className="history-exercises">{workout.exercises.map((exercise) => exercise.exerciseName).join(', ')}</p>
+              </div>
+              <div className="history-actions">
+                <button type="button" onClick={() => handleEditWorkout(workout)}>Edit</button>
+                <button type="button" className="history-delete" disabled={deletingWorkoutId === workout.id} onClick={() => handleDeleteWorkout(workout)}>
+                  {deletingWorkoutId === workout.id ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </section>
     </div>
   )
 }

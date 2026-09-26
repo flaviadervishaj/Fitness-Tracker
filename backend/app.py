@@ -261,6 +261,31 @@ def create_exercise():
         return jsonify({'error': str(e)}), 500
 
 # Workout endpoints
+def validate_workout_data(data, require_all=False):
+    if not isinstance(data, dict):
+        return 'No data provided'
+    if require_all or 'name' in data:
+        if not isinstance(data.get('name'), str) or not data['name'].strip():
+            return 'Workout name is required'
+    if require_all or 'exercises' in data:
+        exercises = data.get('exercises')
+        if not isinstance(exercises, list) or not exercises:
+            return 'Add at least one exercise'
+        for entry in exercises:
+            if not isinstance(entry, dict) or not all(key in entry for key in ('exerciseId', 'sets', 'reps')):
+                return 'Exercise, sets, and reps are required'
+            if any(not isinstance(entry[key], int) or isinstance(entry[key], bool) or entry[key] <= 0 for key in ('sets', 'reps')):
+                return 'Sets and reps must be positive whole numbers'
+            if not isinstance(entry['exerciseId'], int) or not db.session.get(Exercise, entry['exerciseId']):
+                return 'Exercise not found'
+            weight = entry.get('weight')
+            if weight is not None and (not isinstance(weight, (int, float)) or isinstance(weight, bool) or weight < 0):
+                return 'Weight must be zero or greater'
+    duration = data.get('duration')
+    if duration is not None and (not isinstance(duration, int) or isinstance(duration, bool) or duration < 0):
+        return 'Duration must be zero or greater'
+    return None
+
 @app.route('/api/workouts', methods=['GET'])
 @token_required
 def get_workouts(current_user):
@@ -329,26 +354,9 @@ def get_workout(current_user, workout_id):
 def create_workout(current_user):
     try:
         data = request.json
-        if not data or not isinstance(data.get('name'), str) or not data['name'].strip():
-            return jsonify({'error': 'Workout name is required'}), 400
-
-        exercises = data.get('exercises')
-        if not isinstance(exercises, list) or not exercises:
-            return jsonify({'error': 'Add at least one exercise'}), 400
-        for entry in exercises:
-            if not isinstance(entry, dict) or not all(key in entry for key in ('exerciseId', 'sets', 'reps')):
-                return jsonify({'error': 'Exercise, sets, and reps are required'}), 400
-            if not isinstance(entry['sets'], int) or isinstance(entry['sets'], bool) or entry['sets'] <= 0 or not isinstance(entry['reps'], int) or isinstance(entry['reps'], bool) or entry['reps'] <= 0:
-                return jsonify({'error': 'Sets and reps must be positive whole numbers'}), 400
-            if not isinstance(entry['exerciseId'], int) or not db.session.get(Exercise, entry['exerciseId']):
-                return jsonify({'error': 'Exercise not found'}), 400
-            weight = entry.get('weight')
-            if weight is not None and (not isinstance(weight, (int, float)) or isinstance(weight, bool) or weight < 0):
-                return jsonify({'error': 'Weight must be zero or greater'}), 400
-
-        duration = data.get('duration')
-        if duration is not None and (not isinstance(duration, int) or isinstance(duration, bool) or duration < 0):
-            return jsonify({'error': 'Duration must be zero or greater'}), 400
+        error = validate_workout_data(data, require_all=True)
+        if error:
+            return jsonify({'error': error}), 400
         
         date_str = data.get('date', datetime.utcnow().isoformat())
         if 'Z' in date_str:
@@ -388,21 +396,28 @@ def create_workout(current_user):
 @token_required
 def update_workout(current_user, workout_id):
     """Update a workout"""
+    workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first()
+    if not workout:
+        return jsonify({'error': 'Workout not found'}), 404
     try:
-        workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first_or_404()
         data = request.json
         if not data:
             return jsonify({'error': 'No data provided'}), 400
+        error = validate_workout_data(data)
+        if error:
+            return jsonify({'error': error}), 400
         
         workout.name = data.get('name', workout.name)
         if 'date' in data:
             date_str = data['date']
+            if not isinstance(date_str, str):
+                return jsonify({'error': 'Invalid date'}), 400
             if 'Z' in date_str:
                 date_str = date_str.replace('Z', '+00:00')
             try:
                 workout.date = datetime.fromisoformat(date_str)
             except ValueError:
-                pass  # Keep existing date if parsing fails
+                return jsonify({'error': 'Invalid date'}), 400
         workout.duration = data.get('duration', workout.duration)
         
         # Update exercises if provided
@@ -432,8 +447,10 @@ def update_workout(current_user, workout_id):
 @token_required
 def delete_workout(current_user, workout_id):
     """Delete a workout"""
+    workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first()
+    if not workout:
+        return jsonify({'error': 'Workout not found'}), 404
     try:
-        workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first_or_404()
         
         # Delete associated workout exercises
         WorkoutExercise.query.filter_by(workout_id=workout.id).delete()
