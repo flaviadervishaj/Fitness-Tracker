@@ -64,6 +64,18 @@ class PasswordResetTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('email', response.json['error'])
 
+    def test_login_accepts_email_and_trimmed_username(self):
+        for identifier in ('athlete@example.com', '  ATHLETE@EXAMPLE.COM  ', ' athlete ', 'ATHLETE'):
+            response = self.client.post('/api/auth/login', json={
+                'username': identifier, 'password': 'old-password',
+            })
+            self.assertEqual(response.status_code, 200)
+
+        duplicate = self.client.post('/api/auth/register', json={
+            'username': 'Athlete', 'email': 'other@example.com', 'password': 'secure-password',
+        })
+        self.assertEqual(duplicate.status_code, 400)
+
 
 if __name__ == '__main__':
     unittest.main()
