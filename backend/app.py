@@ -125,7 +125,7 @@ def register():
             return jsonify({'error': 'Enter a username and a password of at least 6 characters'}), 400
         
         # Check if user already exists
-        if User.query.filter_by(username=data['username']).first():
+        if User.query.filter(db.func.lower(User.username) == data['username'].strip().lower()).first():
             return jsonify({'error': 'Username already exists'}), 400
         
         # Email is optional, but if provided, check if it's already taken
@@ -172,11 +172,15 @@ def login():
         
         username = data.get('username')
         password = data.get('password')
-        
-        if not username or not password:
-            return jsonify({'error': 'Username and password are required'}), 400
-        
-        user = User.query.filter_by(username=username).first()
+
+        if not isinstance(username, str) or not username.strip() or not isinstance(password, str) or not password:
+            return jsonify({'error': 'Username or email and password are required'}), 400
+
+        identifier = username.strip()
+        if '@' in identifier:
+            user = User.query.filter(db.func.lower(User.email) == identifier.lower()).first()
+        else:
+            user = User.query.filter(db.func.lower(User.username) == identifier.lower()).first()
         
         if not user or not user.check_password(password):
             return jsonify({'error': 'Invalid username or password'}), 401

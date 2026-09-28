@@ -42,12 +42,14 @@ function Login() {
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label>Username</label>
+            <label htmlFor="login-username">{isRegister ? 'Username' : 'Username or email'}</label>
             <input
+              id="login-username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
+              placeholder={isRegister ? 'Enter your username' : 'Enter your username or email'}
+              autoComplete="username"
               required
             />
           </div>
@@ -65,12 +67,14 @@ function Login() {
           )}
 
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="login-password">Password</label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
               required
               minLength={6}
             />
