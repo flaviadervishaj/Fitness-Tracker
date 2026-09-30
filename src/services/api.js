@@ -53,6 +53,12 @@ export const exerciseAPI = {
   getAll: () => apiCall('/exercises', {}, false),
 }
 
+export const passwordResetAPI = {
+  available: () => apiCall('/auth/password-reset/available', {}, false),
+  request: (email) => apiCall('/auth/password-reset/request', { method: 'POST', body: { email } }, false),
+  confirm: (token, password) => apiCall('/auth/password-reset/confirm', { method: 'POST', body: { token, password } }, false),
+}
+
 export const workoutAPI = {
   getAll: () => apiCall('/workouts'),
   create: (workout) => apiCall('/workouts', { method: 'POST', body: workout }),

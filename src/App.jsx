@@ -5,6 +5,7 @@ import WorkoutTracker from './components/WorkoutTracker'
 import ExerciseLibrary from './components/ExerciseLibrary'
 import Progress from './components/Progress'
 import Login from './components/Login'
+import { ForgotPassword, ResetPassword } from './components/PasswordReset'
 import { exerciseAPI, workoutAPI } from './services/api'
 import { includedExercises } from './data/exercises'
 import { ToastProvider, useToast } from './contexts/ToastContext'
@@ -216,6 +217,8 @@ function AppContent() {
         <main className="main-content">
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/dashboard"
               element={

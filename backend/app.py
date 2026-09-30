@@ -3,7 +3,16 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
 import jwt
+import hashlib
+import hmac
+import json
+import logging
+import time
+from html import escape
 from functools import wraps
+from threading import Lock
+from urllib.parse import quote
+from urllib.request import Request, urlopen
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,11 +33,52 @@ CORS(app)  # Enable CORS for React frontend
 from models import db, Exercise, Workout, WorkoutExercise, User
 db.init_app(app)
 
+RESET_MESSAGE = 'If an account uses this email address, a reset link will arrive shortly.'
+_reset_attempts = {}
+_reset_lock = Lock()
+
+
+def reset_email_enabled():
+    return all(os.getenv(name) for name in ('RESEND_API_KEY', 'RESET_EMAIL_FROM', 'FRONTEND_URL'))
+
+
+def reset_rate_limited(email):
+    # Small per-process guard; use a shared rate limiter if the service is scaled out.
+    key = (request.remote_addr, email)
+    now = time.monotonic()
+    with _reset_lock:
+        for expired_key, last_attempt in list(_reset_attempts.items()):
+            if now - last_attempt > 60:
+                del _reset_attempts[expired_key]
+        if key in _reset_attempts:
+            return True
+        _reset_attempts[key] = now
+    return False
+
+
+def send_reset_email(address, link):
+    safe_link = escape(link, quote=True)
+    body = json.dumps({
+        'from': os.environ['RESET_EMAIL_FROM'],
+        'to': [address],
+        'subject': 'Reset your Fitness Tracker password',
+        'text': f'Open this link to reset your password. It expires in 30 minutes:\n{link}\n\nIf you did not request this, ignore this email.',
+        'html': f'<p>Use this link to reset your Fitness Tracker password. It expires in 30 minutes.</p><p><a href="{safe_link}">Reset password</a></p><p>If you did not request this, ignore this email.</p>',
+    }).encode('utf-8')
+    email_request = Request('https://api.resend.com/emails', data=body, headers={
+        'Authorization': f"Bearer {os.environ['RESEND_API_KEY']}",
+        'Content-Type': 'application/json',
+    }, method='POST')
+    with urlopen(email_request, timeout=10):
+        pass
+
 # JWT helper functions
 def generate_token(user_id):
     """Generate JWT token"""
+    user = db.session.get(User, user_id)
     payload = {
         'user_id': user_id,
+        'password': hashlib.sha256(user.password_hash.encode('utf-8')).hexdigest(),
         'exp': datetime.utcnow() + timedelta(days=7)
     }
     token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
@@ -52,9 +102,12 @@ def token_required(f):
         
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user = User.query.get(data['user_id'])
+            current_user = db.session.get(User, data['user_id'])
             if not current_user:
                 return jsonify({'error': 'User not found'}), 401
+            digest = hashlib.sha256(current_user.password_hash.encode('utf-8')).hexdigest()
+            if not hmac.compare_digest(digest, data.get('password', '')):
+                return jsonify({'error': 'Session expired'}), 401
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Token has expired'}), 401
         except jwt.InvalidTokenError:
@@ -128,8 +181,13 @@ def register():
         if User.query.filter(db.func.lower(User.username) == data['username'].strip().lower()).first():
             return jsonify({'error': 'Username already exists'}), 400
         
-        # Email is optional, but if provided, check if it's already taken
-        email = data.get('email', '').strip()
+        # Once recovery is enabled, new accounts need a reachable address.
+        raw_email = data.get('email', '')
+        if not isinstance(raw_email, str):
+            return jsonify({'error': 'Enter a valid email address'}), 400
+        email = raw_email.strip().lower()
+        if reset_email_enabled() and (not email or '@' not in email or email.endswith('@fitness-tracker.local')):
+            return jsonify({'error': 'An email address is required for password recovery'}), 400
         if email:
             if User.query.filter_by(email=email).first():
                 return jsonify({'error': 'Email already exists'}), 400
@@ -208,6 +266,62 @@ def get_current_user(current_user):
         'username': current_user.username,
         'email': current_user.email
     }), 200
+
+
+@app.route('/api/auth/password-reset/available', methods=['GET'])
+def password_reset_available():
+    return jsonify({'available': reset_email_enabled()})
+
+
+@app.route('/api/auth/password-reset/request', methods=['POST'])
+def request_password_reset():
+    if not reset_email_enabled():
+        return jsonify({'error': 'Password recovery is temporarily unavailable.'}), 503
+    data = request.get_json(silent=True) or {}
+    email = data.get('email')
+    if not isinstance(email, str) or not email.strip() or len(email) > 120:
+        return jsonify({'error': 'Enter a valid email address.'}), 400
+    email = email.strip().lower()
+    if reset_rate_limited(email):
+        return jsonify({'message': RESET_MESSAGE})
+
+    user = User.query.filter(db.func.lower(User.email) == email).first()
+    if user and not email.endswith('@fitness-tracker.local'):
+        token = jwt.encode({
+            'purpose': 'password-reset',
+            'user_id': user.id,
+            'password': hashlib.sha256(user.password_hash.encode('utf-8')).hexdigest(),
+            'exp': datetime.utcnow() + timedelta(minutes=30),
+        }, app.config['SECRET_KEY'], algorithm='HS256')
+        link = f"{os.environ['FRONTEND_URL'].rstrip('/')}/reset-password?token={quote(token)}"
+        try:
+            send_reset_email(user.email, link)
+        except Exception:
+            logging.exception('Password reset email delivery failed')
+            # Keep the response identical for existing and unknown addresses.
+    return jsonify({'message': RESET_MESSAGE})
+
+
+@app.route('/api/auth/password-reset/confirm', methods=['POST'])
+def confirm_password_reset():
+    data = request.get_json(silent=True) or {}
+    token, password = data.get('token'), data.get('password')
+    if not isinstance(token, str) or len(token) > 2048 or not isinstance(password, str) or not 8 <= len(password) <= 128:
+        return jsonify({'error': 'Enter a password of 8 to 128 characters.'}), 400
+    try:
+        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        if payload.get('purpose') != 'password-reset':
+            raise jwt.InvalidTokenError()
+        user = db.session.get(User, payload['user_id'])
+        digest = hashlib.sha256(user.password_hash.encode('utf-8')).hexdigest() if user else ''
+        if not hmac.compare_digest(digest, payload.get('password', '')):
+            raise jwt.InvalidTokenError()
+    except (jwt.InvalidTokenError, KeyError, TypeError):
+        return jsonify({'error': 'This reset link is invalid or has expired. Request a new one.'}), 400
+
+    user.set_password(password)
+    db.session.commit()
+    return jsonify({'message': 'Password updated. You can sign in now.'})
 
 # Exercise endpoints
 @app.route('/api/exercises', methods=['GET'])

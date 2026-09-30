@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { passwordResetAPI } from '../services/api'
 import './Login.css'
 
 function Login() {
@@ -9,9 +10,14 @@ function Login() {
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [recoveryAvailable, setRecoveryAvailable] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    passwordResetAPI.available().then((data) => setRecoveryAvailable(data.available)).catch(() => {})
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -56,12 +62,15 @@ function Login() {
 
           {isRegister && (
             <div className="form-group">
-              <label>Email (Optional)</label>
+              <label htmlFor="register-email">Email{recoveryAvailable ? '' : ' (Optional)'}</label>
               <input
+                id="register-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email (optional)"
+                placeholder="Enter your email"
+                autoComplete="email"
+                required={recoveryAvailable}
               />
             </div>
           )}
@@ -84,6 +93,10 @@ function Login() {
             {isSubmitting ? 'Please wait…' : isRegister ? 'Sign Up' : 'Sign In'}
           </button>
         </form>
+
+        {!isRegister && recoveryAvailable && (
+          <Link to="/forgot-password" className="login-back-link">Forgot password?</Link>
+        )}
 
         <div className="login-switch">
           <p>
